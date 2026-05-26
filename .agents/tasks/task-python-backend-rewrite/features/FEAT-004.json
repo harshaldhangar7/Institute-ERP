@@ -2,7 +2,7 @@
   "id": "FEAT-004",
   "type": "chore",
   "description": "Update the root package.json scripts, Dockerfile, docker-compose.yml, and README.md to work with the Python FastAPI backend instead of the Node.js backend.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Update root package.json: change scripts to use Python commands for backend: 'dev:backend' -> 'cd backend && uvicorn app.main:app --reload --port 5000', 'build:backend' -> 'cd backend && pip install -r requirements.txt', 'test:backend' -> 'cd backend && python -m pytest tests/ -v', 'seed' -> 'cd backend && python seed.py', 'start' -> 'cd backend && uvicorn app.main:app --port 5000'. Keep frontend scripts unchanged. Remove the 'workspaces' field since backend is no longer an npm workspace.",
     "Update Dockerfile to a multi-stage build: Stage 1 (frontend-build): node:22-alpine, build the frontend (npm install in frontend/, npm run build). Stage 2 (production): python:3.11-slim, install Python deps from backend/requirements.txt, copy backend/app and backend/seed.py, copy frontend/dist for static serving, create uploads dir, expose 5000, CMD uvicorn app.main:app --host 0.0.0.0 --port 5000.",
