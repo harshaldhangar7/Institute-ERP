@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "feat",
   "description": "Project scaffolding, database schema, and authentication system. Set up the monorepo structure with npm workspaces, configure TypeScript, Prisma with SQLite, Express backend with JWT authentication, role-based access control middleware, and the complete database schema for the Institute ERP.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create root package.json with npm workspaces pointing to backend/ and frontend/. Add root scripts: build, test, dev:backend, dev:frontend.",
     "Create backend/package.json with dependencies: express, @types/express, typescript, ts-node, prisma, @prisma/client, jsonwebtoken, @types/jsonwebtoken, bcryptjs, @types/bcryptjs, cors, @types/cors, dotenv, zod, multer, @types/multer, uuid. Dev deps: jest, @types/jest, ts-jest, supertest, @types/supertest, nodemon.",
@@ -35,5 +35,5 @@
     "cd /projects/sandbox/Institute-ERP/backend && npx jest --passWithNoTests"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All acceptance criteria met. npm install works, prisma generate/db push creates DB with all tables, tsc compiles cleanly, seed script runs successfully, all 12 Jest auth tests pass. Tests use the same dev.db database (file:./dev.db). The .env file is gitignored - a .env.example is provided. The backend .env must be manually created for dev use."
 }
