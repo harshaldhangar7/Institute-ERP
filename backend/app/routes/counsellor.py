@@ -131,13 +131,15 @@ async def record_payment(
 
     # Verify fee belongs to counsellor's student
     counsellor = db.query(Counsellor).filter(Counsellor.userId == current_user["userId"]).first()
-    if counsellor:
-        cs = db.query(CounsellorStudent).filter(
-            CounsellorStudent.counsellorId == counsellor.id,
-            CounsellorStudent.studentId == fee.studentId,
-        ).first()
-        if not cs:
-            return error_response("Access denied. Student not assigned to you.", 403)
+    if not counsellor:
+        return error_response("Counsellor profile not found", 404)
+
+    cs = db.query(CounsellorStudent).filter(
+        CounsellorStudent.counsellorId == counsellor.id,
+        CounsellorStudent.studentId == fee.studentId,
+    ).first()
+    if not cs:
+        return error_response("Access denied. Student not assigned to you.", 403)
 
     payment = FeePayment(feeId=fee_id, amount=amount, method=method)
     db.add(payment)

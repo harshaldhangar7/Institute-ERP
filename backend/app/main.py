@@ -1,13 +1,16 @@
+import logging
 import os
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.dependencies import AuthException
+from app.dependencies import AuthException, authenticate
 from app.utils.response import success_response, error_response
+
+logger = logging.getLogger(__name__)
 
 # Import models to ensure they are registered with Base
 import app.models  # noqa: F401
@@ -48,6 +51,7 @@ async def auth_exception_handler(request: Request, exc: AuthException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
+    logging.exception("Unhandled exception on %s %s", request.method, request.url.path)
     return error_response("Internal server error", 500)
 
 
@@ -72,10 +76,20 @@ app.include_router(notifications.router)
 app.include_router(reports.router)
 
 
-# Mount uploads directory for static file serving
+# Serve uploaded files with JWT authentication (matching Node.js behavior)
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
-if os.path.exists(uploads_dir):
-    app.mount("/uploads", StaticFiles(directory=uploads_dir), name="uploads")
+
+
+@app.get("/uploads/{file_path:path}")
+async def serve_upload(file_path: str, current_user: dict = Depends(authenticate)):
+    """Serve files from uploads/ only after verifying the JWT token."""
+    full_path = os.path.join(uploads_dir, file_path)
+    # Prevent path traversal
+    if not os.path.realpath(full_path).startswith(os.path.realpath(uploads_dir)):
+        return error_response("Access denied", 403)
+    if not os.path.isfile(full_path):
+        return error_response("File not found", 404)
+    return FileResponse(full_path)
 
 
 # Serve frontend static files in production

@@ -105,8 +105,22 @@ async def mark_qr(
     if not lecture:
         return error_response("Lecture not found", 404)
 
-    # Check attendance window (5 min after lecture end)
-    # For simplicity, we allow marking if within a reasonable window
+    # Check attendance window: must be within 5 minutes after lecture end
+    if lecture.date and lecture.endTime:
+        try:
+            end_time_parts = lecture.endTime.split(":")
+            lecture_end = lecture.date.replace(
+                hour=int(end_time_parts[0]),
+                minute=int(end_time_parts[1]),
+                second=0,
+                microsecond=0,
+            )
+            window_end = lecture_end.timestamp() + (5 * 60)  # 5 minutes after lecture end
+            if current_time > window_end:
+                return error_response("Attendance window has closed", 400)
+        except (ValueError, IndexError):
+            pass  # If time parsing fails, skip window check
+
     student = db.query(Student).filter(Student.userId == current_user["userId"]).first()
     if not student:
         return error_response("Student profile not found", 404)
@@ -152,15 +166,14 @@ async def mark_online(
     if not lecture:
         return error_response("Lecture not found", 404)
 
-    # Require 70% of lecture duration
-    lecture_duration = lecture.duration or 0
-    if lecture_duration > 0:
-        required_duration = lecture_duration * 0.7
-        if join_duration < required_duration:
-            return error_response(
-                f"Insufficient attendance. Required: {required_duration:.0f} min, attended: {join_duration} min",
-                400,
-            )
+    # Require 70% of lecture duration (default to 60 minutes if not set)
+    lecture_duration = lecture.duration or 60
+    required_duration = lecture_duration * 0.7
+    if join_duration < required_duration:
+        return error_response(
+            f"Insufficient attendance. Required: {required_duration:.0f} min, attended: {join_duration} min",
+            400,
+        )
 
     student = db.query(Student).filter(Student.userId == current_user["userId"]).first()
     if not student:

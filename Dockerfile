@@ -24,8 +24,8 @@ COPY backend/.env ./backend/
 # Copy frontend build
 COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-# Create uploads directory
-RUN mkdir -p /app/backend/uploads
+# Create uploads and data directories
+RUN mkdir -p /app/backend/uploads /app/backend/data
 
 # Set environment variables
 ENV PORT=5000

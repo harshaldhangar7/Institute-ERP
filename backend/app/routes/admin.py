@@ -229,7 +229,9 @@ async def delete_student(student_id: str, db: Session = Depends(get_db)):
 
     user_id = student.userId
 
-    # Delete related records in proper order
+    # NOTE: Manual cascade deletion - if new FK relationships are added to Student,
+    # they must be deleted here too or a foreign key constraint error will occur.
+    # Consider adding ON DELETE CASCADE to model definitions in the future.
     db.query(Attendance).filter(Attendance.studentId == student_id).delete()
     db.query(Marks).filter(Marks.studentId == student_id).delete()
     db.query(MockInterview).filter(MockInterview.studentId == student_id).delete()
@@ -325,6 +327,8 @@ async def delete_trainer(trainer_id: str, db: Session = Depends(get_db)):
         return error_response("Trainer not found", 404)
 
     user_id = trainer.userId
+    # NOTE: Manual cascade deletion - if new FK relationships are added to Trainer,
+    # they must be deleted here too or a foreign key constraint error will occur.
     db.query(TrainerBatch).filter(TrainerBatch.trainerId == trainer_id).delete()
     db.query(Trainer).filter(Trainer.id == trainer_id).delete()
     db.query(User).filter(User.id == user_id).delete()
@@ -411,6 +415,8 @@ async def delete_counsellor(counsellor_id: str, db: Session = Depends(get_db)):
         return error_response("Counsellor not found", 404)
 
     user_id = counsellor.userId
+    # NOTE: Manual cascade deletion - if new FK relationships are added to Counsellor,
+    # they must be deleted here too or a foreign key constraint error will occur.
     db.query(CounsellorStudent).filter(CounsellorStudent.counsellorId == counsellor_id).delete()
     db.query(Counsellor).filter(Counsellor.id == counsellor_id).delete()
     db.query(User).filter(User.id == user_id).delete()
@@ -487,6 +493,8 @@ async def delete_batch(batch_id: str, db: Session = Depends(get_db)):
     if not batch:
         return error_response("Batch not found", 404)
 
+    # NOTE: Manual cascade deletion - if new FK relationships are added to Batch,
+    # they must be deleted here too or a foreign key constraint error will occur.
     db.query(BatchModule).filter(BatchModule.batchId == batch_id).delete()
     db.query(TrainerBatch).filter(TrainerBatch.batchId == batch_id).delete()
     db.query(Batch).filter(Batch.id == batch_id).delete()
@@ -558,6 +566,8 @@ async def delete_module(module_id: str, db: Session = Depends(get_db)):
     if not module:
         return error_response("Module not found", 404)
 
+    # NOTE: Manual cascade deletion - if new FK relationships are added to Module,
+    # they must be deleted here too or a foreign key constraint error will occur.
     db.query(BatchModule).filter(BatchModule.moduleId == module_id).delete()
     db.query(Module).filter(Module.id == module_id).delete()
     db.commit()
