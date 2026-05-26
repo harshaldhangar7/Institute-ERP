@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Create the database seed script (Python equivalent of prisma/seed.ts), write pytest tests covering auth, admin, and trainer endpoints, and ensure the backend starts and responds correctly.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Create backend/seed.py - Python script that creates the same demo data as prisma/seed.ts: 1 admin (admin@institute.com/admin123), 3 trainers (trainer1-3@institute.com/trainer123), 2 counsellors (counsellor1-2@institute.com/counsellor123), 4 batches, 8 modules, batch-module assignments, trainer-batch assignments, 20 students (student1-20@institute.com/student123), counsellor-student assignments, 20 lectures, attendance records, marks, fees with payments, notifications, announcements. Uses bcrypt for password hashing. Creates tables via SQLAlchemy metadata.create_all().",
     "Create backend/tests/__init__.py",
@@ -25,5 +25,5 @@
     "cd /projects/sandbox/Institute-ERP/backend && python -m pytest tests/ -v"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "All 27 tests pass. Seed script creates all demo data (1 admin, 3 trainers, 2 counsellors, 20 students, 4 batches, 8 modules, 32 batch-module assignments, 6 trainer-batch assignments, 20 counsellor-student assignments, 20 lectures, 100 attendance records, 40 marks, 20 fees, 13 notifications, 3 announcements). Tests use a separate test.db file with session-level table creation and per-test rollback for isolation. Test database is cleaned up after the session."
 }
