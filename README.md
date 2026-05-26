@@ -46,9 +46,37 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 
 ### Local Development
 
+#### Quick Start (using setup script)
+
 ```bash
-# Install backend dependencies
+# Linux/Mac
 cd backend
+./setup.sh
+
+# Windows
+cd backend
+setup.bat
+```
+
+The setup script creates a virtual environment, activates it, and installs all dependencies automatically.
+
+#### Manual Setup
+
+```bash
+# Create and activate a Python virtual environment
+cd backend
+
+# Linux/Mac
+python -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate.bat
+```
+
+```bash
+# Install backend dependencies (with venv activated)
 pip install -r requirements.txt
 
 # Seed the database with demo data
@@ -62,6 +90,9 @@ cd frontend
 npm install
 npm run dev
 ```
+
+> **Note:** Always activate the virtual environment before working on the backend.
+> Use `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate.bat` (Windows).
 
 Or using the root package.json scripts:
 
