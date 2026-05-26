@@ -14,6 +14,10 @@
     "test:backend": "npm run test --workspace=backend",
     "test:frontend": "npm run test --workspace=frontend",
     "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend"
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "seed": "npm run seed --workspace=backend",
+    "start": "NODE_ENV=production node backend/dist/index.js",
+    "docker:build": "docker build -t institute-erp .",
+    "docker:run": "docker compose up -d"
   }
 }
