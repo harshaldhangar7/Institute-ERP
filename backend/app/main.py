@@ -2,7 +2,7 @@ import os
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
@@ -11,6 +11,22 @@ from app.utils.response import success_response, error_response
 
 # Import models to ensure they are registered with Base
 import app.models  # noqa: F401
+
+# Import route modules
+from app.routes import (
+    admin,
+    assignments,
+    attendance,
+    auth,
+    counsellor,
+    evaluation,
+    mock_interview,
+    notifications,
+    reports,
+    resources,
+    student,
+    trainer,
+)
 
 app = FastAPI(title="Institute ERP API")
 
@@ -39,6 +55,21 @@ async def general_exception_handler(request: Request, exc: Exception):
 @app.get("/api/health")
 async def health_check():
     return success_response(data={"status": "ok"}, message="Server is running")
+
+
+# Include all routers
+app.include_router(auth.router)
+app.include_router(admin.router)
+app.include_router(trainer.router)
+app.include_router(counsellor.router)
+app.include_router(student.router)
+app.include_router(attendance.router)
+app.include_router(evaluation.router)
+app.include_router(mock_interview.router)
+app.include_router(assignments.router)
+app.include_router(resources.router)
+app.include_router(notifications.router)
+app.include_router(reports.router)
 
 
 # Mount uploads directory for static file serving

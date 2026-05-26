@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "feat",
   "description": "Implement all API route handlers (auth, admin, trainer, counsellor, student, attendance, evaluation, mock-interviews, assignments, resources, notifications, reports) with exact same endpoints, request/response shapes, and business logic as the Node.js backend.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create backend/app/routes/__init__.py",
     "Create backend/app/routes/auth.py - POST /auth/login (public), POST /auth/register (admin-only), GET /auth/me (authenticated), POST /auth/change-password (authenticated). Login returns {token, user (without password)}. Register creates user + role-specific record. Use bcrypt for password hashing, python-jose for JWT with 24h expiry.",
