@@ -9,6 +9,6 @@
     "tests": "pass",
     "test_quality": "pass",
     "docker_build": "skipped",
-    "summary": "All 27 pytest tests pass. App starts successfully and responds correctly to all endpoint categories (auth, admin, trainer, student, counsellor, notifications, reports). Seed script populates database with demo data. API response shapes match expected format ({success, data, message/error, pagination fields})."
+    "summary": "All 27 pytest tests pass. App starts successfully and responds correctly to all endpoint categories. Semantic review issues (7) addressed: uploads auth, attendance validation, error logging, counsellor auth gap, QR window, Docker volumes. All tests pass after fixes."
   }
 }
