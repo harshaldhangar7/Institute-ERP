@@ -2,7 +2,7 @@
   "id": "FEAT-003",
   "type": "feat",
   "description": "Complete React frontend with Vite, TypeScript, Tailwind CSS, React Router v6, role-based routing, and full UI for all four roles (Admin, Trainer, Counsellor, Student). Includes login page, dashboards, CRUD interfaces, attendance system UI (QR display/scan), and all module pages.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Create frontend/package.json with dependencies: react, react-dom, react-router-dom, axios, tailwindcss, postcss, autoprefixer, @headlessui/react, @heroicons/react, chart.js, react-chartjs-2, qrcode.react, html5-qrcode, date-fns, react-hot-toast, @tanstack/react-query. Dev deps: vite, @vitejs/plugin-react, typescript, @types/react, @types/react-dom, vitest, @testing-library/react, @testing-library/jest-dom, jsdom.",
     "Create frontend/vite.config.ts with React plugin, proxy /api to localhost:5000, and test configuration for vitest.",
