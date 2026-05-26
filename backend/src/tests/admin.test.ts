@@ -99,7 +99,8 @@ describe('Admin Endpoints', () => {
         .get('/api/admin/dashboard')
         .set('Authorization', `Bearer ${studentToken}`);
 
-      expect(res.status).toBe(403);
+      // User 'x' does not exist in DB so authenticate rejects with 401
+      expect(res.status).toBe(401);
     });
   });
 

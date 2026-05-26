@@ -113,8 +113,16 @@ router.post('/lectures', async (req: AuthRequest, res: Response): Promise<void> 
 // PUT /api/trainer/lectures/:id/end - end a lecture
 router.put('/lectures/:id/end', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const trainer = await prisma.trainer.findUnique({ where: { userId: req.user!.userId } });
+    if (!trainer) { error(res, 'Trainer profile not found', 404); return; }
+
     const lecture = await prisma.lecture.findUnique({ where: { id: req.params.id } });
     if (!lecture) { error(res, 'Lecture not found', 404); return; }
+
+    if (lecture.trainerId !== trainer.id) {
+      error(res, 'You do not own this lecture', 403);
+      return;
+    }
 
     // Calculate duration in minutes
     const [startH, startM] = lecture.startTime.split(':').map(Number);

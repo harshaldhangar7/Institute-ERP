@@ -1,8 +1,23 @@
 import { Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { PrismaClient } from '@prisma/client';
 import { AuthRequest, JwtPayload } from '../types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-development';
+const prisma = new PrismaClient();
+
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'test') {
+      return 'test-secret-key';
+    }
+    console.error('FATAL: JWT_SECRET environment variable is not set.');
+    process.exit(1);
+  }
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export function authenticate(req: AuthRequest, res: Response, next: NextFunction): void {
   const authHeader = req.headers.authorization;
@@ -16,8 +31,20 @@ export function authenticate(req: AuthRequest, res: Response, next: NextFunction
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
-    req.user = decoded;
-    next();
+
+    // Check if user is still active in the database
+    prisma.user.findUnique({ where: { id: decoded.userId }, select: { isActive: true } })
+      .then((user) => {
+        if (!user || !user.isActive) {
+          res.status(401).json({ success: false, error: 'Account is deactivated.' });
+          return;
+        }
+        req.user = decoded;
+        next();
+      })
+      .catch(() => {
+        res.status(401).json({ success: false, error: 'Invalid or expired token.' });
+      });
   } catch {
     res.status(401).json({ success: false, error: 'Invalid or expired token.' });
   }

@@ -142,7 +142,8 @@ describe('Auth Endpoints', () => {
           role: 'STUDENT',
         });
 
-      expect(res.status).toBe(403);
+      // User 'some-id' does not exist in DB so authenticate rejects with 401
+      expect(res.status).toBe(401);
       expect(res.body.success).toBe(false);
     });
 

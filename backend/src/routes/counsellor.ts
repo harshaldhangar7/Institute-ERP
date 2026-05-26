@@ -48,6 +48,21 @@ router.post('/fees/payment', async (req: AuthRequest, res: Response): Promise<vo
     const parsed = recordPaymentSchema.safeParse(req.body);
     if (!parsed.success) { error(res, parsed.error.errors[0].message, 400); return; }
 
+    const counsellor = await prisma.counsellor.findUnique({ where: { userId: req.user!.userId } });
+    if (!counsellor) { error(res, 'Counsellor profile not found', 404); return; }
+
+    // Verify the fee belongs to a student assigned to this counsellor
+    const fee = await prisma.fee.findUnique({
+      where: { id: parsed.data.feeId },
+      include: { student: true },
+    });
+    if (!fee) { error(res, 'Fee record not found', 404); return; }
+
+    if (fee.student.counsellorId !== counsellor.id) {
+      error(res, 'This fee does not belong to one of your assigned students', 403);
+      return;
+    }
+
     const payment = await counsellorService.recordPayment(parsed.data.feeId, parsed.data.amount, parsed.data.method);
     success(res, payment, 'Payment recorded', 201);
   } catch (err: any) {

@@ -1,0 +1,37 @@
+{
+  "id": "FEAT-005",
+  "type": "fix",
+  "description": "Address code review security and reliability issues: hardcoded JWT secret, QR timing attack, token revocation, trainer cross-ownership, delete cascading, counsellor fee ownership, pagination cap, upload auth, and test DB isolation.",
+  "status": "completed",
+  "steps": [
+    "Remove hardcoded JWT fallback in auth.ts and auth.service.ts; fail fast on startup if missing. Keep test setup providing the env var.",
+    "Replace === with crypto.timingSafeEqual in validateQRToken.",
+    "Add isActive DB check in authenticate middleware.",
+    "Add trainer ownership check in PUT /api/trainer/lectures/:id/end and POST /api/attendance/generate-qr (restrict to TRAINER only).",
+    "Wrap delete operations in prisma.$transaction and delete dependent records first.",
+    "Add counsellor fee ownership verification in POST /api/counsellor/fees/payment.",
+    "Cap pagination limit to 100 in admin routes.",
+    "Add authentication middleware to uploads static route.",
+    "Use separate test.db in test setup."
+  ],
+  "acceptance_criteria": [
+    "JWT_SECRET env var absence causes immediate process exit (except test mode).",
+    "QR token validation uses timing-safe comparison.",
+    "Deactivated users get 401 from authenticate middleware.",
+    "Trainers cannot end lectures they do not own.",
+    "Only TRAINER role can generate QR codes.",
+    "Delete operations use transactions and remove dependents.",
+    "Counsellor fee payment checks student ownership.",
+    "List endpoint limit is capped at 100.",
+    "Uploads route requires authentication.",
+    "Tests use test.db separate from dev.db.",
+    "All existing tests pass."
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP && npm run build",
+    "cd /projects/sandbox/Institute-ERP/backend && npx jest --forceExit",
+    "cd /projects/sandbox/Institute-ERP/frontend && npx vitest run"
+  ],
+  "blocked_reason": null,
+  "findings": "All 9 code review issues fixed. Tests adjusted to account for the isActive DB check in authenticate middleware - tokens with non-existent user IDs now return 401 instead of passing through to roleGuard. The test.db is created via prisma db push for test isolation."
+}

@@ -4,7 +4,19 @@ import jwt from 'jsonwebtoken';
 import { JwtPayload } from '../types';
 
 const prisma = new PrismaClient();
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-key-for-development';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'test') {
+      return 'test-secret-key';
+    }
+    console.error('FATAL: JWT_SECRET environment variable is not set.');
+    process.exit(1);
+  }
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export interface RegisterInput {
   email: string;

@@ -106,7 +106,7 @@ router.get('/dashboard', async (_req: AuthRequest, res: Response): Promise<void>
 router.get('/students', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const { students, total } = await adminService.getStudents(page, limit);
     paginated(res, students, total, page, limit);
   } catch (err: any) {
@@ -149,7 +149,7 @@ router.delete('/students/:id', async (req: AuthRequest, res: Response): Promise<
 router.get('/trainers', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const { trainers, total } = await adminService.getTrainers(page, limit);
     paginated(res, trainers, total, page, limit);
   } catch (err: any) {
@@ -192,7 +192,7 @@ router.delete('/trainers/:id', async (req: AuthRequest, res: Response): Promise<
 router.get('/counsellors', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const { counsellors, total } = await adminService.getCounsellors(page, limit);
     paginated(res, counsellors, total, page, limit);
   } catch (err: any) {
@@ -235,7 +235,7 @@ router.delete('/counsellors/:id', async (req: AuthRequest, res: Response): Promi
 router.get('/batches', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const { batches, total } = await adminService.getBatches(page, limit);
     paginated(res, batches, total, page, limit);
   } catch (err: any) {
@@ -278,7 +278,7 @@ router.delete('/batches/:id', async (req: AuthRequest, res: Response): Promise<v
 router.get('/modules', async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
     const { modules, total } = await adminService.getModules(page, limit);
     paginated(res, modules, total, page, limit);
   } catch (err: any) {

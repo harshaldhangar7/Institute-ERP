@@ -24,7 +24,13 @@ export function validateQRToken(lectureId: string, token: string, timestamp: num
 
   const expectedData = `${lectureId}:${timestamp}`;
   const expectedToken = crypto.createHmac('sha256', HMAC_SECRET).update(expectedData).digest('hex');
-  return token === expectedToken;
+
+  const tokenBuffer = Buffer.from(token);
+  const expectedBuffer = Buffer.from(expectedToken);
+  if (tokenBuffer.length !== expectedBuffer.length) {
+    return false;
+  }
+  return crypto.timingSafeEqual(tokenBuffer, expectedBuffer);
 }
 
 export async function generateQR(lectureId: string) {

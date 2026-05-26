@@ -50,8 +50,19 @@ export async function updateStudent(id: string, data: { name?: string; phone?: s
 export async function deleteStudent(id: string) {
   const student = await prisma.student.findUnique({ where: { id } });
   if (!student) throw new Error('Student not found');
-  await prisma.student.delete({ where: { id } });
-  await prisma.user.delete({ where: { id: student.userId } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendance.deleteMany({ where: { studentId: id } });
+    await tx.marks.deleteMany({ where: { studentId: id } });
+    await tx.mockInterview.deleteMany({ where: { studentId: id } });
+    await tx.submission.deleteMany({ where: { studentId: id } });
+    await tx.feePayment.deleteMany({ where: { fee: { studentId: id } } });
+    await tx.fee.deleteMany({ where: { studentId: id } });
+    await tx.counsellorStudent.deleteMany({ where: { studentId: id } });
+    await tx.student.delete({ where: { id } });
+    await tx.user.delete({ where: { id: student.userId } });
+  });
+
   return { message: 'Student deleted successfully' };
 }
 
@@ -102,8 +113,19 @@ export async function updateTrainer(id: string, data: { name?: string; phone?: s
 export async function deleteTrainer(id: string) {
   const trainer = await prisma.trainer.findUnique({ where: { id } });
   if (!trainer) throw new Error('Trainer not found');
-  await prisma.trainer.delete({ where: { id } });
-  await prisma.user.delete({ where: { id: trainer.userId } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendance.deleteMany({ where: { lecture: { trainerId: id } } });
+    await tx.lecture.deleteMany({ where: { trainerId: id } });
+    await tx.mockInterview.deleteMany({ where: { trainerId: id } });
+    await tx.submission.deleteMany({ where: { assignment: { trainerId: id } } });
+    await tx.assignment.deleteMany({ where: { trainerId: id } });
+    await tx.resource.deleteMany({ where: { trainerId: id } });
+    await tx.trainerBatch.deleteMany({ where: { trainerId: id } });
+    await tx.trainer.delete({ where: { id } });
+    await tx.user.delete({ where: { id: trainer.userId } });
+  });
+
   return { message: 'Trainer deleted successfully' };
 }
 
@@ -151,8 +173,14 @@ export async function updateCounsellor(id: string, data: { name?: string; phone?
 export async function deleteCounsellor(id: string) {
   const counsellor = await prisma.counsellor.findUnique({ where: { id } });
   if (!counsellor) throw new Error('Counsellor not found');
-  await prisma.counsellor.delete({ where: { id } });
-  await prisma.user.delete({ where: { id: counsellor.userId } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.counsellorStudent.deleteMany({ where: { counsellorId: id } });
+    await tx.student.updateMany({ where: { counsellorId: id }, data: { counsellorId: null } });
+    await tx.counsellor.delete({ where: { id } });
+    await tx.user.delete({ where: { id: counsellor.userId } });
+  });
+
   return { message: 'Counsellor deleted successfully' };
 }
 
@@ -191,7 +219,20 @@ export async function updateBatch(id: string, data: { name?: string; startDate?:
 export async function deleteBatch(id: string) {
   const batch = await prisma.batch.findUnique({ where: { id } });
   if (!batch) throw new Error('Batch not found');
-  await prisma.batch.delete({ where: { id } });
+
+  await prisma.$transaction(async (tx) => {
+    // Delete attendance records for lectures in this batch
+    await tx.attendance.deleteMany({ where: { lecture: { batchId: id } } });
+    await tx.lecture.deleteMany({ where: { batchId: id } });
+    await tx.submission.deleteMany({ where: { assignment: { batchId: id } } });
+    await tx.assignment.deleteMany({ where: { batchId: id } });
+    await tx.announcement.deleteMany({ where: { batchId: id } });
+    await tx.trainerBatch.deleteMany({ where: { batchId: id } });
+    await tx.batchModule.deleteMany({ where: { batchId: id } });
+    await tx.student.updateMany({ where: { batchId: id }, data: { batchId: null } });
+    await tx.batch.delete({ where: { id } });
+  });
+
   return { message: 'Batch deleted successfully' };
 }
 
@@ -220,7 +261,18 @@ export async function updateModule(id: string, data: { name?: string; descriptio
 export async function deleteModule(id: string) {
   const mod = await prisma.module.findUnique({ where: { id } });
   if (!mod) throw new Error('Module not found');
-  await prisma.module.delete({ where: { id } });
+
+  await prisma.$transaction(async (tx) => {
+    await tx.attendance.deleteMany({ where: { lecture: { moduleId: id } } });
+    await tx.lecture.deleteMany({ where: { moduleId: id } });
+    await tx.marks.deleteMany({ where: { moduleId: id } });
+    await tx.submission.deleteMany({ where: { assignment: { moduleId: id } } });
+    await tx.assignment.deleteMany({ where: { moduleId: id } });
+    await tx.resource.deleteMany({ where: { moduleId: id } });
+    await tx.batchModule.deleteMany({ where: { moduleId: id } });
+    await tx.module.delete({ where: { id } });
+  });
+
   return { message: 'Module deleted successfully' };
 }
 
