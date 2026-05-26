@@ -1,60 +1,40 @@
-# Stage 1: Build
-FROM node:22-alpine AS build
+# Stage 1: Build Frontend
+FROM node:22-alpine AS frontend-build
 
-WORKDIR /app
-
-# Copy package files
-COPY package.json package-lock.json ./
-COPY backend/package.json ./backend/
-COPY frontend/package.json ./frontend/
-
-# Install all dependencies
+WORKDIR /app/frontend
+COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci
-
-# Copy source code
-COPY backend/ ./backend/
-COPY frontend/ ./frontend/
-
-# Generate Prisma client
-RUN npx prisma generate --schema=backend/prisma/schema.prisma
-
-# Build backend
-RUN npm run build --workspace=backend
-
-# Build frontend
-RUN npm run build --workspace=frontend
+COPY frontend/ ./
+RUN npm run build
 
 # Stage 2: Production
-FROM node:22-alpine AS production
+FROM python:3.11-slim AS production
 
 WORKDIR /app
 
-# Copy backend dist and prisma
-COPY --from=build /app/backend/dist ./backend/dist
-COPY --from=build /app/backend/prisma ./backend/prisma
-COPY --from=build /app/backend/package.json ./backend/
+# Install Python dependencies
+COPY backend/requirements.txt ./backend/
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
-# Copy frontend dist
-COPY --from=build /app/frontend/dist ./frontend/dist
+# Copy backend application
+COPY backend/app ./backend/app
+COPY backend/seed.py ./backend/
+COPY backend/.env ./backend/
 
-# Copy root package files for workspace resolution
-COPY --from=build /app/package.json ./
-COPY --from=build /app/package-lock.json ./
+# Copy frontend build
+COPY --from=frontend-build /app/frontend/dist ./frontend/dist
 
-# Install production dependencies only
-RUN npm ci --workspace=backend --omit=dev && \
-    npx prisma generate --schema=backend/prisma/schema.prisma
-
-# Create uploads directory
-RUN mkdir -p /app/backend/uploads
+# Create uploads and data directories
+RUN mkdir -p /app/backend/uploads /app/backend/data
 
 # Set environment variables
-ENV NODE_ENV=production
 ENV PORT=5000
-ENV DATABASE_URL=file:./prisma/dev.db
+ENV DATABASE_URL=sqlite:///./dev.db
+ENV NODE_ENV=production
 
 EXPOSE 5000
 
 WORKDIR /app/backend
 
-CMD ["node", "dist/index.js"]
+# Run seed and then start server
+CMD ["sh", "-c", "python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 5000"]

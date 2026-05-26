@@ -1,22 +1,18 @@
 {
   "name": "institute-erp",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "private": true,
-  "workspaces": [
-    "backend",
-    "frontend"
-  ],
   "scripts": {
-    "build": "npm run build --workspace=backend && npm run build --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
-    "test": "npm run test --workspace=backend && npm run test --workspace=frontend",
-    "test:backend": "npm run test --workspace=backend",
-    "test:frontend": "npm run test --workspace=frontend",
-    "dev:backend": "npm run dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "seed": "npm run seed --workspace=backend",
-    "start": "NODE_ENV=production node backend/dist/index.js",
+    "build": "cd frontend && npm install && npm run build",
+    "build:frontend": "cd frontend && npm run build",
+    "test": "cd backend && python3.11 -m pytest tests/ -v",
+    "test:backend": "cd backend && python3.11 -m pytest tests/ -v",
+    "test:frontend": "cd frontend && npm test",
+    "dev:backend": "cd backend && uvicorn app.main:app --reload --port 5000",
+    "dev:frontend": "cd frontend && npm run dev",
+    "seed": "cd backend && python3.11 seed.py",
+    "start": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port 5000",
+    "install:backend": "cd backend && pip install -r requirements.txt",
     "docker:build": "docker build -t institute-erp .",
     "docker:run": "docker compose up -d"
   }
