@@ -1,0 +1,49 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Complete backend API implementation for all modules: Admin CRUD operations, Trainer module (batch management, attendance, evaluation, mock interviews, assignments, resources, analytics), Counsellor module (student management, fee tracking, alerts, follow-ups), Student module (dashboard, attendance marking, performance view, resources, notifications), and core system engines (batch management, module/course management, attendance engine with QR generation, evaluation engine, reporting engine with PDF/Excel export).",
+  "status": "pending",
+  "steps": [
+    "Create backend/src/routes/admin.ts - Admin CRUD routes: GET/POST/PUT/DELETE for students, trainers, counsellors, batches, modules. Assignment routes: POST /api/admin/assign-trainer-batch, POST /api/admin/assign-counsellor-student, POST /api/admin/assign-module-batch. Dashboard route: GET /api/admin/dashboard (total students, active batches, attendance overview, fee collection status, performance insights).",
+    "Create backend/src/services/admin.service.ts - Business logic for all admin operations including dashboard aggregation queries using Prisma.",
+    "Create backend/src/routes/trainer.ts - Trainer routes: GET /api/trainer/batches (assigned batches), GET /api/trainer/batches/:id/students (student overview with snapshot data), GET /api/trainer/batches/:id/modules (modules for batch), POST /api/trainer/lectures (create lecture session - start lecture), PUT /api/trainer/lectures/:id/end (end lecture - records duration, triggers attendance window), GET /api/trainer/lectures (lecture history).",
+    "Create backend/src/routes/attendance.ts - Attendance routes: POST /api/attendance/generate-qr (generate dynamic QR with session ID, timestamp, encrypted token - changes every 10 seconds), POST /api/attendance/mark-qr (student scans QR - validates session, time window 2-5 min after lecture end, token freshness), POST /api/attendance/mark-online (online attendance - validates student joined lecture, active duration threshold), GET /api/attendance/history/:studentId, GET /api/attendance/batch/:batchId/:lectureId.",
+    "Create backend/src/services/attendance.service.ts - QR generation logic (crypto-based token with session ID + timestamp + HMAC), QR validation (check token age <= 10s, session validity, time window), online attendance validation (check join time, active duration), attendance statistics calculation.",
+    "Create backend/src/routes/evaluation.ts - Evaluation routes: POST /api/evaluation/marks (add marks - theory/practical/project), GET /api/evaluation/marks/:studentId (get student marks), GET /api/evaluation/marks/batch/:batchId (batch marks overview), PUT /api/evaluation/marks/:id (update marks).",
+    "Create backend/src/routes/mock-interview.ts - Mock interview routes: POST /api/mock-interviews (create evaluation with communication, technical, confidence scores + feedback), GET /api/mock-interviews/:studentId (student's mock interview history), GET /api/mock-interviews/batch/:batchId.",
+    "Create backend/src/routes/assignments.ts - Assignment routes: POST /api/assignments (create with file upload via multer), GET /api/assignments/batch/:batchId, POST /api/assignments/:id/submit (student submission with file), GET /api/assignments/:id/submissions (trainer view), PUT /api/submissions/:id/grade (trainer grades submission).",
+    "Create backend/src/routes/resources.ts - Resource routes: POST /api/resources (upload notes/materials with file), GET /api/resources/module/:moduleId, GET /api/resources/batch/:batchId, DELETE /api/resources/:id.",
+    "Create backend/src/routes/counsellor.ts - Counsellor routes: GET /api/counsellor/students (assigned students with progress, attendance, performance), GET /api/counsellor/students/:id/fees (fee details), POST /api/counsellor/fees/payment (record payment), GET /api/counsellor/alerts (low attendance, poor performance alerts from trainers), POST /api/counsellor/follow-ups (add follow-up notes), GET /api/counsellor/dashboard (active students, fee collection, at-risk students).",
+    "Create backend/src/services/counsellor.service.ts - Fee calculation logic, alert aggregation, at-risk student identification (attendance < 75% or marks < 40%).",
+    "Create backend/src/routes/student.ts - Student routes: GET /api/student/dashboard (batch info, trainer, module progress, attendance %), GET /api/student/attendance (attendance history with stats), GET /api/student/marks (all marks by module with theory/practical/project breakdown), GET /api/student/mock-interviews (mock interview history and scores), GET /api/student/assignments (assignments with submission status), GET /api/student/resources (available learning resources), GET /api/student/lectures (lecture history with topics), GET /api/student/notifications.",
+    "Create backend/src/routes/notifications.ts - Notification routes: GET /api/notifications (user's notifications), PUT /api/notifications/:id/read (mark as read), POST /api/notifications/announce (create announcement - admin/trainer only).",
+    "Create backend/src/routes/reports.ts - Reporting routes: GET /api/reports/attendance (attendance report with filters - batch, date range, student), GET /api/reports/marks (marks report), GET /api/reports/batch-progress (batch progress report), GET /api/reports/export/:type (export as PDF or Excel - use pdfkit and exceljs packages).",
+    "Create backend/src/services/reports.service.ts - Report generation logic with PDF (using pdfkit) and Excel (using exceljs) export functionality.",
+    "Create backend/src/routes/index.ts - Central route mounting file that registers all route modules with appropriate role guards.",
+    "Create backend/src/middleware/validate.ts - Zod-based request validation middleware factory.",
+    "Create backend/src/middleware/upload.ts - Multer configuration for file uploads (assignments, resources, submissions) with file type/size validation. Store in uploads/ directory.",
+    "Add pdfkit and exceljs to backend dependencies for report generation.",
+    "Create backend/src/tests/admin.test.ts - Tests for admin CRUD operations and dashboard.",
+    "Create backend/src/tests/trainer.test.ts - Tests for trainer module including lecture management.",
+    "Create backend/src/tests/attendance.test.ts - Tests for QR generation, validation, and attendance marking."
+  ],
+  "acceptance_criteria": [
+    "All backend route files compile without TypeScript errors",
+    "Admin CRUD endpoints work for all entity types (students, trainers, counsellors, batches, modules)",
+    "Trainer can start/end lectures and the attendance window is correctly enforced",
+    "QR-based attendance generates tokens and validates them within the time window",
+    "Online attendance validates join time and active duration",
+    "Marks can be added for theory, practical, and project types",
+    "Mock interview evaluations store communication, technical, confidence scores",
+    "Counsellor can view assigned students, track fees, and see alerts",
+    "Student can view their dashboard, attendance, marks, and resources",
+    "Reports can be generated and exported as PDF/Excel",
+    "Backend test suite passes with npx jest"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP && npm run build",
+    "cd /projects/sandbox/Institute-ERP/backend && npx jest --passWithNoTests --forceExit"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

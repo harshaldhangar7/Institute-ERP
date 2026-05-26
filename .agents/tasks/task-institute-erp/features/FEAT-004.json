@@ -1,0 +1,35 @@
+{
+  "id": "FEAT-004",
+  "type": "chore",
+  "description": "Docker containerization, final integration, and production readiness. Create Dockerfile and docker-compose.yml for the full stack, add production build scripts, ensure end-to-end integration works, and create comprehensive documentation.",
+  "status": "pending",
+  "steps": [
+    "Create Dockerfile at project root - multi-stage build: Stage 1 builds backend (npm ci, tsc), Stage 2 builds frontend (npm ci, vite build), Stage 3 production image (Node.js alpine, copy backend dist + frontend dist, serve frontend as static files from Express, expose port 5000).",
+    "Create docker-compose.yml with service for the ERP app, volume mount for SQLite database persistence, environment variables.",
+    "Create .dockerignore to exclude node_modules, .git, dist, uploads (or mount as volume).",
+    "Update backend/src/index.ts to serve frontend static files from frontend/dist in production mode (express.static).",
+    "Create backend/prisma/seed.ts enhancement - seed comprehensive demo data: 1 admin, 3 trainers, 2 counsellors, 20 students across 4 batches, 8 modules, sample lectures/attendance/marks/fees for realistic demo.",
+    "Add npm scripts in root package.json: 'seed' to run prisma seed, 'start' for production, 'docker:build', 'docker:run'.",
+    "Create README.md at project root with: project overview, architecture diagram (text-based), tech stack, setup instructions (both local dev and Docker), API documentation summary, default credentials, folder structure explanation.",
+    "Run full integration test: build Docker image, verify it starts and responds to API requests.",
+    "Ensure all existing tests still pass after integration changes."
+  ],
+  "acceptance_criteria": [
+    "Docker image builds successfully with docker build",
+    "The containerized app starts and responds to HTTP requests",
+    "Frontend is served as static files in production mode",
+    "Seed script creates realistic demo data",
+    "README.md documents the full system with setup instructions",
+    "All backend tests pass",
+    "All frontend tests pass",
+    "npm run build from root succeeds"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP && npm run build",
+    "cd /projects/sandbox/Institute-ERP/backend && npx jest --passWithNoTests --forceExit",
+    "cd /projects/sandbox/Institute-ERP/frontend && npx vitest run --passWithNoTests",
+    "cd /projects/sandbox/Institute-ERP && docker build -t institute-erp:test ."
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

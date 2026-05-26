@@ -1,0 +1,7 @@
+{
+  "task_id": "task-institute-erp",
+  "task_description": "Build a full, production-ready Institute ERP system from scratch with role-based access for Admin, Trainer, Counsellor, and Student. Monorepo with Node.js/Express/TypeScript backend + React/Vite/TypeScript frontend. Features: JWT auth, RBAC, hybrid attendance (QR + online), evaluation system, mock interviews, fee management, reporting with PDF/Excel export, Docker containerization.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

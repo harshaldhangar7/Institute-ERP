@@ -1,0 +1,39 @@
+{
+  "id": "FEAT-001",
+  "type": "feat",
+  "description": "Project scaffolding, database schema, and authentication system. Set up the monorepo structure with npm workspaces, configure TypeScript, Prisma with SQLite, Express backend with JWT authentication, role-based access control middleware, and the complete database schema for the Institute ERP.",
+  "status": "in_progress",
+  "steps": [
+    "Create root package.json with npm workspaces pointing to backend/ and frontend/. Add root scripts: build, test, dev:backend, dev:frontend.",
+    "Create backend/package.json with dependencies: express, @types/express, typescript, ts-node, prisma, @prisma/client, jsonwebtoken, @types/jsonwebtoken, bcryptjs, @types/bcryptjs, cors, @types/cors, dotenv, zod, multer, @types/multer, uuid. Dev deps: jest, @types/jest, ts-jest, supertest, @types/supertest, nodemon.",
+    "Create backend/tsconfig.json targeting ES2022, strict mode, outDir: dist, rootDir: src.",
+    "Create backend/prisma/schema.prisma with SQLite provider and full data model: User (id, email, password, role enum [ADMIN, TRAINER, COUNSELLOR, STUDENT], name, phone, photo, isActive, createdAt, updatedAt), Student (userId, batchId, counsellorId, enrollmentDate, mode enum [OFFLINE, ONLINE]), Trainer (userId, specialization), Counsellor (userId), Batch (id, name, startDate, endDate, isActive), Module (id, name, description, duration), BatchModule (batchId, moduleId, status, completionPercent), TrainerBatch (trainerId, batchId), CounsellorStudent (counsellorId, studentId), Lecture (id, batchId, moduleId, trainerId, date, startTime, endTime, duration, topics, sessionToken), Attendance (id, studentId, lectureId, status enum [PRESENT, ABSENT, LATE], markedAt, method enum [QR, ONLINE, MANUAL]), Marks (id, studentId, moduleId, type enum [THEORY, PRACTICAL, PROJECT], score, maxScore, remarks), MockInterview (id, studentId, trainerId, date, communication, technical, confidence, overallScore, feedback), Assignment (id, moduleId, batchId, trainerId, title, description, dueDate, filePath), Submission (id, assignmentId, studentId, filePath, submittedAt, grade, feedback), Resource (id, moduleId, trainerId, title, filePath, uploadedAt), Fee (id, studentId, totalAmount, paidAmount, pendingAmount, dueDate, status enum [PAID, PARTIAL, PENDING, OVERDUE]), FeePayment (id, feeId, amount, paidAt, method), Notification (id, userId, title, message, type, isRead, createdAt), Announcement (id, createdById, title, message, targetRole, batchId, createdAt).",
+    "Create backend/src/index.ts - Express app setup with CORS, JSON parsing, route mounting, error handling middleware. Listen on PORT from env (default 5000).",
+    "Create backend/src/middleware/auth.ts - JWT verification middleware that extracts token from Authorization header, verifies it, attaches user to request. Create roleGuard middleware factory that checks user.role against allowed roles array.",
+    "Create backend/src/routes/auth.ts - POST /api/auth/register (admin-only user creation), POST /api/auth/login (returns JWT + user info), GET /api/auth/me (get current user profile), POST /api/auth/change-password.",
+    "Create backend/src/services/auth.service.ts - Business logic for registration (hash password, create user + role-specific record), login (verify credentials, generate JWT), profile retrieval.",
+    "Create backend/src/utils/response.ts - Standardized API response helpers: success(data, message), error(message, statusCode), paginated(data, total, page, limit).",
+    "Create backend/src/types/index.ts - TypeScript interfaces for request extensions (AuthRequest with user property), API response types, pagination params.",
+    "Create .env.example with DATABASE_URL=file:./dev.db, JWT_SECRET=your-secret-key, PORT=5000.",
+    "Create backend/jest.config.js configured for ts-jest with moduleNameMapper for path aliases.",
+    "Create backend/src/tests/auth.test.ts - Integration tests for auth endpoints: register, login, protected routes, role guard.",
+    "Run npx prisma generate and npx prisma db push to initialize the database. Create a seed script backend/prisma/seed.ts that creates a default admin user (admin@institute.com / admin123) and sample data for each role."
+  ],
+  "acceptance_criteria": [
+    "npm install succeeds from root without errors",
+    "npx prisma generate creates the Prisma client successfully",
+    "npx prisma db push creates the SQLite database with all tables",
+    "The backend compiles with tsc without errors",
+    "POST /api/auth/login with valid admin credentials returns a JWT token",
+    "Protected routes return 401 without a token and 403 with wrong role",
+    "Jest tests for auth module pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP && npm install",
+    "cd /projects/sandbox/Institute-ERP/backend && npx prisma generate && npx prisma db push",
+    "cd /projects/sandbox/Institute-ERP && npm run build",
+    "cd /projects/sandbox/Institute-ERP/backend && npx jest --passWithNoTests"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}
