@@ -8,4 +8,5 @@ module.exports = {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   setupFiles: ['<rootDir>/src/tests/setup.ts'],
+  maxWorkers: 1,
 };
