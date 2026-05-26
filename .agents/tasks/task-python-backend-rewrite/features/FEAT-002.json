@@ -1,0 +1,36 @@
+{
+  "id": "FEAT-002",
+  "type": "feat",
+  "description": "Implement all API route handlers (auth, admin, trainer, counsellor, student, attendance, evaluation, mock-interviews, assignments, resources, notifications, reports) with exact same endpoints, request/response shapes, and business logic as the Node.js backend.",
+  "status": "pending",
+  "steps": [
+    "Create backend/app/routes/__init__.py",
+    "Create backend/app/routes/auth.py - POST /auth/login (public), POST /auth/register (admin-only), GET /auth/me (authenticated), POST /auth/change-password (authenticated). Login returns {token, user (without password)}. Register creates user + role-specific record. Use bcrypt for password hashing, python-jose for JWT with 24h expiry.",
+    "Create backend/app/routes/admin.py - GET/POST/PUT/DELETE for /admin/students, /admin/trainers, /admin/counsellors, /admin/batches, /admin/modules. Paginated GET with page/limit query params. POST /admin/assign-trainer-batch, POST /admin/assign-counsellor-student, POST /admin/assign-module-batch. GET /admin/dashboard returning totalStudents, activeBatches, totalTrainers, totalCounsellors, attendanceOverview, feeCollectionStatus.",
+    "Create backend/app/routes/trainer.py - GET /trainer/batches (assigned batches), GET /trainer/batches/:id/students (student snapshot with attendance%, avgMarks), GET /trainer/batches/:id/modules, POST /trainer/lectures (create lecture), PUT /trainer/lectures/:id/end (end lecture with duration calc), GET /trainer/lectures (lecture history).",
+    "Create backend/app/routes/counsellor.py - GET /counsellor/students (assigned students with stats), GET /counsellor/students/:id/fees, POST /counsellor/fees/payment (record payment, update fee totals), GET /counsellor/alerts (low attendance < 75%, poor performance < 40%), POST /counsellor/follow-ups (create notification for student), GET /counsellor/dashboard.",
+    "Create backend/app/routes/student.py - GET /student/dashboard (batch info, attendance%, moduleProgress, trainerName), GET /student/attendance (with stats), GET /student/marks (grouped by module), GET /student/mock-interviews, GET /student/assignments (with submissions), GET /student/resources, GET /student/lectures, GET /student/notifications.",
+    "Create backend/app/routes/attendance.py - POST /attendance/generate-qr (trainer only, HMAC token generation), POST /attendance/mark-qr (student, validate QR token with timing), POST /attendance/mark-online (student, validate 70% duration threshold), GET /attendance/history/:studentId, GET /attendance/batch/:batchId/:lectureId.",
+    "Create backend/app/routes/evaluation.py - POST /evaluation/marks, GET /evaluation/marks/:studentId, GET /evaluation/marks/batch/:batchId, PUT /evaluation/marks/:id.",
+    "Create backend/app/routes/mock_interview.py - POST /mock-interviews (trainer creates evaluation with scores), GET /mock-interviews/:studentId, GET /mock-interviews/batch/:batchId.",
+    "Create backend/app/routes/assignments.py - POST /assignments (with file upload), GET /assignments/batch/:batchId, POST /assignments/:id/submit (student submission with file), GET /assignments/:id/submissions, PUT /assignments/submissions/:id/grade.",
+    "Create backend/app/routes/resources.py - POST /resources (file upload), GET /resources/module/:moduleId, GET /resources/batch/:batchId, DELETE /resources/:id.",
+    "Create backend/app/routes/notifications.py - GET /notifications, PUT /notifications/:id/read, POST /notifications/announce (admin/trainer only, creates announcement + notifications for targeted users).",
+    "Create backend/app/routes/reports.py - GET /reports/attendance (with filters), GET /reports/marks (with filters), GET /reports/batch-progress, GET /reports/export/:type (pdf or excel export using fpdf2 and openpyxl).",
+    "Wire all routers in backend/app/main.py with correct prefixes and role guards: auth (public), admin (ADMIN), trainer (TRAINER), counsellor (COUNSELLOR), student (STUDENT), attendance (TRAINER+STUDENT), evaluation (TRAINER+ADMIN), mock-interviews (TRAINER), assignments (TRAINER+STUDENT), resources (TRAINER+STUDENT), notifications (all authenticated), reports (ADMIN+TRAINER)."
+  ],
+  "acceptance_criteria": [
+    "All API routes from the Node.js backend are replicated: auth (4 endpoints), admin (17+ endpoints), trainer (6 endpoints), counsellor (5 endpoints), student (8 endpoints), attendance (5 endpoints), evaluation (4 endpoints), mock-interviews (3 endpoints), assignments (5 endpoints), resources (4 endpoints), notifications (3 endpoints), reports (4 endpoints)",
+    "The response shapes match exactly: {success: true, data: ..., message: ...} for success, {success: false, error: ...} for errors, pagination includes total/page/limit/totalPages",
+    "Role-based access control matches: each route group restricted to the correct roles",
+    "File upload endpoints accept multipart/form-data and save to backend/uploads/ with UUID filenames",
+    "QR attendance uses HMAC-SHA256 with timing validation (10s token validity, 5min attendance window)",
+    "Report export generates PDF and Excel files with correct content-type headers"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP/backend && python -c \"from app.main import app; routes = [r.path for r in app.routes]; print(f'Total routes: {len(routes)}')\"",
+    "cd /projects/sandbox/Institute-ERP/backend && python -c \"from app.routes import auth, admin, trainer, counsellor, student, attendance, evaluation, mock_interview, assignments, resources, notifications, reports; print('All route modules imported')\""
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

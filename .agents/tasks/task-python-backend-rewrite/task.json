@@ -1,0 +1,7 @@
+{
+  "task_id": "task-python-backend-rewrite",
+  "task_description": "Rewrite the Institute ERP backend from Node.js/Express/TypeScript to Python/FastAPI/SQLAlchemy while maintaining identical API contracts so the React frontend continues to work unchanged.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003", "FEAT-004"],
+  "blocked_reason": null
+}

@@ -3,3 +3,7 @@ dist/
 *.db
 .env
 coverage/
+__pycache__/
+*.pyc
+*.pyo
+
