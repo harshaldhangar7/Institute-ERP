@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import authenticate, role_guard
@@ -44,9 +44,10 @@ async def dashboard(
     lecture_count = db.query(Lecture).filter(Lecture.trainerId == trainer.id).count()
 
     # Get upcoming lectures (date >= today)
-    from datetime import date
     today = date.today()
-    upcoming = db.query(Lecture).filter(
+    upcoming = db.query(Lecture).options(
+        joinedload(Lecture.batch),
+    ).filter(
         Lecture.trainerId == trainer.id,
         Lecture.date >= datetime.combine(today, datetime.min.time()),
     ).order_by(Lecture.date.asc()).limit(5).all()
@@ -78,13 +79,18 @@ async def get_batches(
     batch_ids = [tb.batchId for tb in trainer_batches]
     batches = db.query(Batch).filter(Batch.id.in_(batch_ids)).all()
 
-    data = [{
-        "id": b.id,
-        "name": b.name,
-        "startDate": b.startDate.isoformat() if b.startDate else None,
-        "endDate": b.endDate.isoformat() if b.endDate else None,
-        "isActive": b.isActive,
-    } for b in batches]
+    data = []
+    for b in batches:
+        student_count = db.query(Student).filter(Student.batchId == b.id).count()
+        data.append({
+            "id": b.id,
+            "name": b.name,
+            "startDate": b.startDate.isoformat() if b.startDate else None,
+            "endDate": b.endDate.isoformat() if b.endDate else None,
+            "isActive": b.isActive,
+            "status": "ACTIVE" if b.isActive else "COMPLETED",
+            "studentCount": student_count,
+        })
 
     return success_response(data=data)
 

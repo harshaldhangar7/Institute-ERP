@@ -306,6 +306,7 @@ async def dashboard(
                 "message": f"Student has {', '.join(alert_reasons).lower()}",
                 "studentName": student.user.name if student.user else "Unknown",
                 "type": alert_reasons[0],
+                "createdAt": datetime.utcnow().isoformat(),
             })
 
     return success_response(data={

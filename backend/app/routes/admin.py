@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Request
 from passlib.context import CryptContext
 from sqlalchemy import func
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import authenticate, role_guard
@@ -456,9 +456,9 @@ async def get_batches(page: int = 1, limit: int = 10, db: Session = Depends(get_
     offset = (page - 1) * limit
     total = db.query(Batch).count()
     batches = db.query(Batch).options(
-        joinedload(Batch.batchModules).joinedload(BatchModule.module),
-        joinedload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
-        joinedload(Batch.students),
+        selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
+        selectinload(Batch.students),
     ).offset(offset).limit(limit).all()
     data = [serialize_batch(b) for b in batches]
     return paginated_response(data, total, page, limit)
@@ -538,7 +538,7 @@ async def get_modules(page: int = 1, limit: int = 10, db: Session = Depends(get_
     offset = (page - 1) * limit
     total = db.query(Module).count()
     modules = db.query(Module).options(
-        joinedload(Module.batchModules).joinedload(BatchModule.batch),
+        selectinload(Module.batchModules).joinedload(BatchModule.batch),
     ).offset(offset).limit(limit).all()
     data = [serialize_module(m) for m in modules]
     return paginated_response(data, total, page, limit)

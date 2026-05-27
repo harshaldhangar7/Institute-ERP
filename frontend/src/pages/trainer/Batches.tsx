@@ -60,7 +60,7 @@ export default function TrainerBatches() {
               <h3 className="font-semibold text-lg">{batch.name}</h3>
               <div className="mt-2 space-y-1">
                 <Badge variant={batch.status === 'ACTIVE' ? 'success' : 'default'}>{batch.status}</Badge>
-                <p className="text-sm text-gray-500">{batch.students?.length || 0} students</p>
+                <p className="text-sm text-gray-500">{batch.studentCount || 0} students</p>
               </div>
             </div>
           </Card>
