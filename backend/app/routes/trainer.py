@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func
@@ -226,7 +226,7 @@ async def end_lecture(
         return error_response("Lecture not found", 404)
 
     # Calculate duration from startTime to now
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     try:
         start_parts = lecture.startTime.split(":")
         start_hour = int(start_parts[0])
