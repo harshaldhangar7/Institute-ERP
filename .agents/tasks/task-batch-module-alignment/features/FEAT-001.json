@@ -2,7 +2,7 @@
   "id": "FEAT-001",
   "type": "fix",
   "description": "Fix backend API responses to include batch-module relationships and add missing dashboard endpoints so that all frontend pages receive the data they expect.",
-  "status": "in_progress",
+  "status": "completed",
   "steps": [
     "Step 1: Update serialize_batch() in backend/app/routes/admin.py to include: (a) 'modules' - list of modules assigned to the batch via BatchModule join (each with id, name, status, completionPercent), (b) 'trainer' - the trainer assigned via TrainerBatch join (with nested user.name), (c) 'studentCount' - count of students in the batch, (d) 'status' - derive from isActive field ('ACTIVE' if isActive else 'COMPLETED').",
     "Step 2: Update serialize_module() in backend/app/routes/admin.py to include 'batches' - list of batches the module is assigned to via BatchModule join (each with id, name).",
@@ -24,5 +24,5 @@
     "cd /projects/sandbox/Institute-ERP/backend && python -m pytest tests/ -v"
   ],
   "blocked_reason": null,
-  "findings": ""
+  "findings": "Used joinedload without unique() since the legacy Query API handles entity deduplication internally. All 27 existing tests pass. The trainer dashboard endpoint was added before the /batches route to avoid route conflicts."
 }
