@@ -24,6 +24,47 @@ router = APIRouter(
 )
 
 
+@router.get("/dashboard")
+async def dashboard(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    # Get trainer's batches
+    trainer_batches = db.query(TrainerBatch).filter(TrainerBatch.trainerId == trainer.id).all()
+    batch_ids = [tb.batchId for tb in trainer_batches]
+
+    # Count students across all batches
+    student_count = db.query(Student).filter(Student.batchId.in_(batch_ids)).count() if batch_ids else 0
+
+    # Count lectures
+    lecture_count = db.query(Lecture).filter(Lecture.trainerId == trainer.id).count()
+
+    # Get upcoming lectures (date >= today)
+    from datetime import date
+    today = date.today()
+    upcoming = db.query(Lecture).filter(
+        Lecture.trainerId == trainer.id,
+        Lecture.date >= datetime.combine(today, datetime.min.time()),
+    ).order_by(Lecture.date.asc()).limit(5).all()
+
+    upcoming_data = [{
+        "topic": l.topics or "No topic",
+        "date": l.date.isoformat() if l.date else None,
+        "batch": l.batch.name if l.batch else None,
+    } for l in upcoming]
+
+    return success_response(data={
+        "batches": len(batch_ids),
+        "students": student_count,
+        "lectures": lecture_count,
+        "upcomingLectures": upcoming_data,
+    })
+
+
 @router.get("/batches")
 async def get_batches(
     current_user: dict = Depends(role_guard(["TRAINER"])),

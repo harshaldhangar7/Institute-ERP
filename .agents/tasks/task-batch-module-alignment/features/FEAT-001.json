@@ -1,0 +1,28 @@
+{
+  "id": "FEAT-001",
+  "type": "fix",
+  "description": "Fix backend API responses to include batch-module relationships and add missing dashboard endpoints so that all frontend pages receive the data they expect.",
+  "status": "in_progress",
+  "steps": [
+    "Step 1: Update serialize_batch() in backend/app/routes/admin.py to include: (a) 'modules' - list of modules assigned to the batch via BatchModule join (each with id, name, status, completionPercent), (b) 'trainer' - the trainer assigned via TrainerBatch join (with nested user.name), (c) 'studentCount' - count of students in the batch, (d) 'status' - derive from isActive field ('ACTIVE' if isActive else 'COMPLETED').",
+    "Step 2: Update serialize_module() in backend/app/routes/admin.py to include 'batches' - list of batches the module is assigned to via BatchModule join (each with id, name).",
+    "Step 3: Update the GET /api/admin/batches endpoint to eagerly load BatchModule/Module, TrainerBatch/Trainer/User, and Student relationships so serialize_batch has the data it needs. Pass db session to serialize_batch or refactor to accept needed data.",
+    "Step 4: Update the GET /api/admin/modules endpoint to eagerly load BatchModule/Batch relationships so serialize_module has the data it needs.",
+    "Step 5: Add GET /api/trainer/dashboard endpoint in backend/app/routes/trainer.py that returns { batches: count, students: count, lectures: count, upcomingLectures: [{topic, date}] } by querying TrainerBatch for batch count, Student for student count in those batches, Lecture for lecture count, and upcoming lectures (date >= today).",
+    "Step 6: Fix GET /api/student/dashboard in backend/app/routes/student.py to return field names matching what the frontend expects: (a) rename 'moduleProgress' to 'modules', (b) inside each module object use 'name' instead of 'moduleName' and 'progress' instead of 'completionPercent', (c) rename 'attendancePercentage' to 'attendance', (d) add 'trainerName' inside the batch object as 'trainer'.",
+    "Step 7: Update GET /api/counsellor/dashboard in backend/app/routes/counsellor.py to also return 'recentAlerts' array (compute from at-risk students, return [{message, studentName, type}] for the most recent alerts)."
+  ],
+  "acceptance_criteria": [
+    "GET /api/admin/batches returns each batch with modules array, trainer object, studentCount, and status field",
+    "GET /api/admin/modules returns each module with batches array",
+    "GET /api/trainer/dashboard returns { batches, students, lectures, upcomingLectures } without 404",
+    "GET /api/student/dashboard returns data.modules (not moduleProgress) with name/progress fields, data.attendance (not attendancePercentage), and data.batch.trainer (not trainerName at top level)",
+    "GET /api/counsellor/dashboard returns recentAlerts array in addition to existing fields",
+    "All existing backend tests still pass"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP/backend && python -m pytest tests/ -v"
+  ],
+  "blocked_reason": null,
+  "findings": ""
+}

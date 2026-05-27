@@ -3,7 +3,7 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Request
 from passlib.context import CryptContext
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import authenticate, role_guard
@@ -90,22 +90,47 @@ def serialize_counsellor(counsellor: Counsellor) -> dict:
 
 
 def serialize_batch(batch: Batch) -> dict:
+    # Get trainer from trainerBatches relationship
+    trainer_data = None
+    if batch.trainerBatches:
+        tb = next((t for t in batch.trainerBatches if t.trainer and t.trainer.user), None)
+        if tb:
+            trainer_data = {"id": tb.trainer.id, "user": {"name": tb.trainer.user.name}}
+
     return {
         "id": batch.id,
         "name": batch.name,
         "startDate": batch.startDate.isoformat() if batch.startDate else None,
         "endDate": batch.endDate.isoformat() if batch.endDate else None,
         "isActive": batch.isActive,
+        "status": "ACTIVE" if batch.isActive else "COMPLETED",
+        "studentCount": len(batch.students) if batch.students else 0,
+        "modules": [
+            {
+                "id": bm.module.id,
+                "name": bm.module.name,
+                "status": bm.status,
+                "completionPercent": bm.completionPercent,
+            }
+            for bm in (batch.batchModules or [])
+            if bm.module
+        ],
+        "trainer": trainer_data,
     }
 
 
 def serialize_module(module: Module) -> dict:
-    return {
+    result = {
         "id": module.id,
         "name": module.name,
         "description": module.description,
         "duration": module.duration,
     }
+    if hasattr(module, 'batchModules') and module.batchModules:
+        result["batches"] = [{"id": bm.batch.id, "name": bm.batch.name} for bm in module.batchModules if bm.batch]
+    else:
+        result["batches"] = []
+    return result
 
 
 # Dashboard
@@ -430,7 +455,11 @@ async def delete_counsellor(counsellor_id: str, db: Session = Depends(get_db)):
 async def get_batches(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     total = db.query(Batch).count()
-    batches = db.query(Batch).offset(offset).limit(limit).all()
+    batches = db.query(Batch).options(
+        joinedload(Batch.batchModules).joinedload(BatchModule.module),
+        joinedload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
+        joinedload(Batch.students),
+    ).offset(offset).limit(limit).all()
     data = [serialize_batch(b) for b in batches]
     return paginated_response(data, total, page, limit)
 
@@ -508,7 +537,9 @@ async def delete_batch(batch_id: str, db: Session = Depends(get_db)):
 async def get_modules(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     total = db.query(Module).count()
-    modules = db.query(Module).offset(offset).limit(limit).all()
+    modules = db.query(Module).options(
+        joinedload(Module.batchModules).joinedload(BatchModule.batch),
+    ).offset(offset).limit(limit).all()
     data = [serialize_module(m) for m in modules]
     return paginated_response(data, total, page, limit)
 

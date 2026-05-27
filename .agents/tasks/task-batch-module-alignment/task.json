@@ -1,0 +1,7 @@
+{
+  "task_id": "task-batch-module-alignment",
+  "task_description": "Fix the batch-module alignment issue across all roles in the Institute ERP system. Batches and modules are not properly connected in the UI - backend responses lack module/batch relationship data, field names mismatch between frontend expectations and backend responses, and the trainer dashboard endpoint is missing entirely.",
+  "status": "in_progress",
+  "feature_order": ["FEAT-001", "FEAT-002", "FEAT-003"],
+  "blocked_reason": null
+}

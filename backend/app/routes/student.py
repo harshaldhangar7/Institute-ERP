@@ -61,9 +61,9 @@ async def dashboard(
         for bm in batch_modules:
             module_progress.append({
                 "moduleId": bm.moduleId,
-                "moduleName": bm.module.name if bm.module else None,
+                "name": bm.module.name if bm.module else None,
                 "status": bm.status,
-                "completionPercent": bm.completionPercent,
+                "progress": bm.completionPercent,
             })
 
     # Attendance percentage
@@ -76,11 +76,14 @@ async def dashboard(
     ).count()
     attendance_pct = (present_count / total_lectures * 100) if total_lectures > 0 else 0
 
+    # Add trainer name to batch_info
+    if batch_info and trainer_name:
+        batch_info["trainer"] = trainer_name
+
     return success_response(data={
         "batch": batch_info,
-        "attendancePercentage": round(attendance_pct, 2),
-        "moduleProgress": module_progress,
-        "trainerName": trainer_name,
+        "attendance": round(attendance_pct, 2),
+        "modules": module_progress,
     })
 
 
