@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from passlib.context import CryptContext
 
@@ -13,6 +13,92 @@ from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+class TestTrainerDashboard:
+    def test_dashboard_returns_stats(self, client, trainer_user, trainer_token, db_session):
+        """GET /api/trainer/dashboard should return batch/student/lecture counts."""
+        trainer = db_session.query(Trainer).filter(Trainer.userId == trainer_user.id).first()
+
+        # Create a batch and assign trainer
+        batch = Batch(
+            id=str(uuid.uuid4()),
+            name="Dashboard Batch",
+            startDate=datetime(2024, 1, 15),
+            endDate=datetime(2024, 7, 15),
+            isActive=True,
+        )
+        db_session.add(batch)
+        db_session.flush()
+
+        tb = TrainerBatch(id=str(uuid.uuid4()), trainerId=trainer.id, batchId=batch.id)
+        db_session.add(tb)
+        db_session.flush()
+
+        # Add a student to the batch
+        student_user_obj = User(
+            id=str(uuid.uuid4()),
+            email=f"dash_student_{uuid.uuid4().hex[:8]}@test.com",
+            password=pwd_context.hash("pass123"),
+            role="STUDENT",
+            name="Dashboard Student",
+            isActive=True,
+        )
+        db_session.add(student_user_obj)
+        db_session.flush()
+        student = Student(
+            id=str(uuid.uuid4()),
+            userId=student_user_obj.id,
+            batchId=batch.id,
+            mode="OFFLINE",
+        )
+        db_session.add(student)
+        db_session.flush()
+
+        # Add a lecture in the future (upcoming)
+        module = Module(id=str(uuid.uuid4()), name="Dashboard Module", duration=40)
+        db_session.add(module)
+        db_session.flush()
+        future_date = datetime.now() + timedelta(days=30)
+        lecture = Lecture(
+            id=str(uuid.uuid4()),
+            batchId=batch.id,
+            moduleId=module.id,
+            trainerId=trainer.id,
+            date=future_date,
+            startTime="10:00",
+            endTime="12:00",
+            topics="Future Topic",
+        )
+        db_session.add(lecture)
+        db_session.flush()
+
+        response = client.get(
+            "/api/trainer/dashboard",
+            headers={"Authorization": f"Bearer {trainer_token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["batches"] >= 1
+        assert data["data"]["students"] >= 1
+        assert data["data"]["lectures"] >= 1
+        assert "upcomingLectures" in data["data"]
+        assert len(data["data"]["upcomingLectures"]) >= 1
+
+    def test_dashboard_no_batches(self, client, trainer_user, trainer_token, db_session):
+        """GET /api/trainer/dashboard with no assigned batches returns zeros."""
+        response = client.get(
+            "/api/trainer/dashboard",
+            headers={"Authorization": f"Bearer {trainer_token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["data"]["batches"] == 0
+        assert data["data"]["students"] == 0
+        assert data["data"]["lectures"] == 0
+        assert data["data"]["upcomingLectures"] == []
 
 
 class TestTrainerBatches:

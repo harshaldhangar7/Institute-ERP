@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from passlib.context import CryptContext
 
@@ -219,6 +220,180 @@ class TestAssignments:
         assert response.status_code == 201
         data = response.json()
         assert data["success"] is True
+
+
+class TestBatchesSerializer:
+    def test_get_batches_includes_modules_trainer_studentcount(
+        self, client, admin_token, db_session
+    ):
+        """GET /api/admin/batches should include modules, trainer, studentCount, and status."""
+        # Create a batch
+        batch = Batch(
+            id=str(uuid.uuid4()),
+            name="Serializer Test Batch",
+            startDate=datetime(2024, 3, 1),
+            endDate=datetime(2024, 9, 1),
+            isActive=True,
+        )
+        db_session.add(batch)
+        db_session.flush()
+
+        # Create a module and link via BatchModule
+        module = Module(
+            id=str(uuid.uuid4()),
+            name="Serializer Test Module",
+            duration=30,
+        )
+        db_session.add(module)
+        db_session.flush()
+
+        bm = BatchModule(
+            id=str(uuid.uuid4()),
+            batchId=batch.id,
+            moduleId=module.id,
+            status="IN_PROGRESS",
+            completionPercent=50,
+        )
+        db_session.add(bm)
+        db_session.flush()
+
+        # Create a trainer and link via TrainerBatch
+        trainer_user_obj = User(
+            id=str(uuid.uuid4()),
+            email=f"ser_trainer_{uuid.uuid4().hex[:8]}@test.com",
+            password=pwd_context.hash("pass123"),
+            role="TRAINER",
+            name="Serializer Trainer",
+            isActive=True,
+        )
+        db_session.add(trainer_user_obj)
+        db_session.flush()
+        trainer = Trainer(
+            id=str(uuid.uuid4()),
+            userId=trainer_user_obj.id,
+            specialization="Testing",
+        )
+        db_session.add(trainer)
+        db_session.flush()
+        tb = TrainerBatch(
+            id=str(uuid.uuid4()),
+            trainerId=trainer.id,
+            batchId=batch.id,
+        )
+        db_session.add(tb)
+        db_session.flush()
+
+        # Add a student to the batch
+        student_user_obj = User(
+            id=str(uuid.uuid4()),
+            email=f"ser_student_{uuid.uuid4().hex[:8]}@test.com",
+            password=pwd_context.hash("pass123"),
+            role="STUDENT",
+            name="Serializer Student",
+            isActive=True,
+        )
+        db_session.add(student_user_obj)
+        db_session.flush()
+        student = Student(
+            id=str(uuid.uuid4()),
+            userId=student_user_obj.id,
+            batchId=batch.id,
+            mode="OFFLINE",
+        )
+        db_session.add(student)
+        db_session.flush()
+
+        response = client.get(
+            "/api/admin/batches",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+        # Find our test batch in the results
+        test_batch = None
+        for b in data["data"]:
+            if b["name"] == "Serializer Test Batch":
+                test_batch = b
+                break
+        assert test_batch is not None, "Test batch not found in response"
+
+        # Check modules array
+        assert "modules" in test_batch
+        assert len(test_batch["modules"]) >= 1
+        module_names = [m["name"] for m in test_batch["modules"]]
+        assert "Serializer Test Module" in module_names
+
+        # Check trainer object
+        assert "trainer" in test_batch
+        assert test_batch["trainer"] is not None
+        assert test_batch["trainer"]["user"]["name"] == "Serializer Trainer"
+
+        # Check studentCount
+        assert "studentCount" in test_batch
+        assert test_batch["studentCount"] >= 1
+
+        # Check status field
+        assert "status" in test_batch
+        assert test_batch["status"] == "ACTIVE"
+
+
+class TestModulesSerializer:
+    def test_get_modules_includes_batches(self, client, admin_token, db_session):
+        """GET /api/admin/modules should include batches array in each module."""
+        # Create a module
+        module = Module(
+            id=str(uuid.uuid4()),
+            name="Module With Batches",
+            duration=25,
+        )
+        db_session.add(module)
+        db_session.flush()
+
+        # Create a batch
+        batch = Batch(
+            id=str(uuid.uuid4()),
+            name="Linked Batch",
+            startDate=datetime(2024, 4, 1),
+            endDate=datetime(2024, 10, 1),
+            isActive=True,
+        )
+        db_session.add(batch)
+        db_session.flush()
+
+        # Link them via BatchModule
+        bm = BatchModule(
+            id=str(uuid.uuid4()),
+            batchId=batch.id,
+            moduleId=module.id,
+            status="NOT_STARTED",
+            completionPercent=0,
+        )
+        db_session.add(bm)
+        db_session.flush()
+
+        response = client.get(
+            "/api/admin/modules",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+        # Find our test module in the results
+        test_module = None
+        for m in data["data"]:
+            if m["name"] == "Module With Batches":
+                test_module = m
+                break
+        assert test_module is not None, "Test module not found in response"
+
+        # Check batches array
+        assert "batches" in test_module
+        assert len(test_module["batches"]) >= 1
+        batch_names = [b["name"] for b in test_module["batches"]]
+        assert "Linked Batch" in batch_names
 
 
 class TestAccessControl:
