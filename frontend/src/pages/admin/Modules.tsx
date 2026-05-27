@@ -70,6 +70,7 @@ export default function AdminModules() {
     { key: 'name', header: 'Name', render: (item: any) => item.name },
     { key: 'description', header: 'Description', render: (item: any) => item.description || '-' },
     { key: 'duration', header: 'Duration (hrs)', render: (item: any) => item.duration || '-' },
+    { key: 'batches', header: 'Batches', render: (item: any) => item.batches?.map((b: any) => b.name).join(', ') || '-' },
     {
       key: 'actions',
       header: 'Actions',

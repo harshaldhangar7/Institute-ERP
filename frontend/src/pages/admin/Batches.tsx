@@ -84,10 +84,11 @@ export default function AdminBatches() {
 
   const columns = [
     { key: 'name', header: 'Name', render: (item: any) => item.name },
+    { key: 'modules', header: 'Modules', render: (item: any) => item.modules?.map((m: any) => m.name).join(', ') || '-' },
     { key: 'trainer', header: 'Trainer', render: (item: any) => item.trainer?.user?.name || '-' },
     { key: 'startDate', header: 'Start Date', render: (item: any) => item.startDate ? format(new Date(item.startDate), 'MMM d, yyyy') : '-' },
     { key: 'status', header: 'Status', render: (item: any) => item.status || '-' },
-    { key: 'students', header: 'Students', render: (item: any) => item.students?.length || 0 },
+    { key: 'students', header: 'Students', render: (item: any) => item.studentCount || 0 },
     {
       key: 'actions',
       header: 'Actions',

@@ -2,7 +2,7 @@
   "id": "FEAT-002",
   "type": "fix",
   "description": "Update frontend pages across all roles to properly display batch-module alignment using the corrected backend responses.",
-  "status": "pending",
+  "status": "in_progress",
   "steps": [
     "Step 1: Update frontend/src/pages/admin/Batches.tsx - (a) Add a 'Modules' column to the table that shows the modules assigned to each batch (render module names as comma-separated list or badge chips), (b) Update the 'Students' column render to use item.studentCount instead of item.students?.length, (c) The 'Trainer' column render should already work with item.trainer?.user?.name pattern.",
     "Step 2: Update frontend/src/pages/admin/Modules.tsx - Add a 'Batches' column to the table that shows which batches each module is assigned to (render batch names as comma-separated or badge chips).",

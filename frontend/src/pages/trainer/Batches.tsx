@@ -6,6 +6,7 @@ export default function TrainerBatches() {
   const [batches, setBatches] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedBatch, setSelectedBatch] = useState<any>(null);
+  const [modules, setModules] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchBatches = async () => {
@@ -20,6 +21,22 @@ export default function TrainerBatches() {
     };
     fetchBatches();
   }, []);
+
+  useEffect(() => {
+    if (selectedBatch) {
+      const fetchModules = async () => {
+        try {
+          const res = await api.get(`/trainer/batches/${selectedBatch.id}/modules`);
+          setModules(res.data.data || []);
+        } catch {
+          setModules([]);
+        }
+      };
+      fetchModules();
+    } else {
+      setModules([]);
+    }
+  }, [selectedBatch]);
 
   if (loading) return <Spinner />;
 
@@ -50,6 +67,22 @@ export default function TrainerBatches() {
         ))}
         {batches.length === 0 && <p className="text-gray-500">No batches assigned</p>}
       </div>
+
+      {selectedBatch && modules.length > 0 && (
+        <Card title={`Modules in ${selectedBatch.name}`}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {modules.map((mod: any) => (
+              <div key={mod.id} className="p-3 border rounded-lg">
+                <p className="font-medium">{mod.module?.name || mod.name || '-'}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <Badge variant={mod.status === 'COMPLETED' ? 'success' : 'default'}>{mod.status}</Badge>
+                  <span className="text-sm text-gray-500">{mod.completionPercent || 0}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {selectedBatch && (
         <Card title={`Students in ${selectedBatch.name}`}>
