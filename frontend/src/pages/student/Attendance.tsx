@@ -14,7 +14,7 @@ export default function StudentAttendance() {
     setLoading(true);
     try {
       const res = await api.get('/student/attendance');
-      setHistory(res.data.data?.attendance || res.data.data || []);
+      setHistory(res.data.data?.records || res.data.data?.attendance || []);
     } catch {
       setHistory([]);
     } finally {
