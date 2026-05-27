@@ -1,8 +1,6 @@
 import uuid
 from datetime import datetime, timedelta
 
-from passlib.context import CryptContext
-
 from app.models.batch import Batch
 from app.models.batch_module import BatchModule
 from app.models.lecture import Lecture
@@ -11,8 +9,7 @@ from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.utils.auth import hash_password
 
 
 class TestTrainerDashboard:
@@ -39,7 +36,7 @@ class TestTrainerDashboard:
         student_user_obj = User(
             id=str(uuid.uuid4()),
             email=f"dash_student_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass123"),
+            password=hash_password("pass123"),
             role="STUDENT",
             name="Dashboard Student",
             isActive=True,
@@ -154,7 +151,7 @@ class TestTrainerBatches:
         student_user_obj = User(
             id=str(uuid.uuid4()),
             email=f"batch_student_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("student123"),
+            password=hash_password("student123"),
             role="STUDENT",
             name="Batch Student",
             isActive=True,

@@ -1,6 +1,7 @@
 @echo off
 REM Setup script for Institute ERP Backend (Windows)
 REM Creates a Python virtual environment and installs dependencies
+REM Supports Python 3.11, 3.12, and 3.13
 
 echo Setting up Institute ERP Backend...
 

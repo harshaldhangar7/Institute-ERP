@@ -2,6 +2,7 @@
 
 # Setup script for Institute ERP Backend
 # Creates a Python virtual environment and installs dependencies
+# Supports Python 3.11, 3.12, and 3.13
 
 set -e
 

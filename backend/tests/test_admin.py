@@ -1,8 +1,6 @@
 import uuid
 from datetime import datetime
 
-from passlib.context import CryptContext
-
 from app.models.batch import Batch
 from app.models.batch_module import BatchModule
 from app.models.module import Module
@@ -10,8 +8,7 @@ from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.utils.auth import hash_password
 
 
 class TestDashboard:
@@ -60,7 +57,7 @@ class TestStudentsCRUD:
             user = User(
                 id=str(uuid.uuid4()),
                 email=f"paginate_{uuid.uuid4().hex[:8]}@test.com",
-                password=pwd_context.hash("pass"),
+                password=hash_password("pass"),
                 role="STUDENT",
                 name=f"Paginate Student {i}",
                 isActive=True,
@@ -90,7 +87,7 @@ class TestStudentsCRUD:
         user = User(
             id=str(uuid.uuid4()),
             email=f"update_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass"),
+            password=hash_password("pass"),
             role="STUDENT",
             name="Update Me",
             isActive=True,
@@ -117,7 +114,7 @@ class TestStudentsCRUD:
         user = User(
             id=str(uuid.uuid4()),
             email=f"delete_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass"),
+            password=hash_password("pass"),
             role="STUDENT",
             name="Delete Me",
             isActive=True,
@@ -190,7 +187,7 @@ class TestAssignments:
         user = User(
             id=str(uuid.uuid4()),
             email=f"assign_tr_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass"),
+            password=hash_password("pass"),
             role="TRAINER",
             name="Assign Trainer",
             isActive=True,
@@ -261,7 +258,7 @@ class TestBatchesSerializer:
         trainer_user_obj = User(
             id=str(uuid.uuid4()),
             email=f"ser_trainer_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass123"),
+            password=hash_password("pass123"),
             role="TRAINER",
             name="Serializer Trainer",
             isActive=True,
@@ -287,7 +284,7 @@ class TestBatchesSerializer:
         student_user_obj = User(
             id=str(uuid.uuid4()),
             email=f"ser_student_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("pass123"),
+            password=hash_password("pass123"),
             role="STUDENT",
             name="Serializer Student",
             isActive=True,

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import String, Float, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -28,7 +28,7 @@ class FeePayment(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     feeId: Mapped[str] = mapped_column(String, ForeignKey("fees.id"), nullable=False)
     amount: Mapped[float] = mapped_column(Float, nullable=False)
-    paidAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    paidAt: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     method: Mapped[str] = mapped_column(String, nullable=False)
 
     fee = relationship("Fee", back_populates="payments")

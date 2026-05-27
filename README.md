@@ -7,7 +7,7 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 | Layer      | Technology                              |
 |------------|-----------------------------------------|
 | Frontend   | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend    | Python 3.11, FastAPI, SQLAlchemy        |
+| Backend    | Python 3.11-3.13, FastAPI, SQLAlchemy   |
 | Database   | SQLite via SQLAlchemy ORM               |
 | Auth       | JWT with role-based access control      |
 | Container  | Docker (multi-stage build)              |
@@ -39,7 +39,7 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (tested with 3.11, 3.12, and 3.13)
 - Node.js 22+ (for frontend build)
 - npm 10+
 - Docker (optional, for containerized deployment)

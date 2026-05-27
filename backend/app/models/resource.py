@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -15,7 +15,7 @@ class Resource(Base):
     trainerId: Mapped[str] = mapped_column(String, ForeignKey("trainers.id"), nullable=False)
     title: Mapped[str] = mapped_column(String, nullable=False)
     filePath: Mapped[str | None] = mapped_column(String, nullable=True)
-    uploadedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    uploadedAt: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     module = relationship("Module", back_populates="resources")
     trainer = relationship("Trainer", back_populates="resources")

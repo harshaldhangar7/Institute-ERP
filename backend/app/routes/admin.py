@@ -1,7 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
-from passlib.context import CryptContext
 from sqlalchemy import func
 from sqlalchemy.orm import Session, joinedload, selectinload
 
@@ -21,6 +20,7 @@ from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
+from app.utils.auth import hash_password
 from app.utils.response import error_response, paginated_response, success_response
 
 router = APIRouter(
@@ -28,8 +28,6 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(authenticate), Depends(role_guard(["ADMIN"]))],
 )
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def serialize_user(user: User) -> dict:
@@ -198,7 +196,7 @@ async def create_student(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="STUDENT", phone=phone)
     db.add(user)
     db.flush()
@@ -239,7 +237,7 @@ async def update_student(student_id: str, request: Request, db: Session = Depend
     if "counsellorId" in body:
         student.counsellorId = body["counsellorId"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(student)
 
@@ -301,7 +299,7 @@ async def create_trainer(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="TRAINER", phone=phone)
     db.add(user)
     db.flush()
@@ -338,7 +336,7 @@ async def update_trainer(trainer_id: str, request: Request, db: Session = Depend
     if "specialization" in body:
         trainer.specialization = body["specialization"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(trainer)
 
@@ -391,7 +389,7 @@ async def create_counsellor(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="COUNSELLOR", phone=phone)
     db.add(user)
     db.flush()
@@ -426,7 +424,7 @@ async def update_counsellor(counsellor_id: str, request: Request, db: Session = 
     if "isActive" in body:
         user.isActive = body["isActive"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(counsellor)
 

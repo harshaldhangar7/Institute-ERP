@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func
@@ -306,7 +306,7 @@ async def dashboard(
                 "message": f"Student has {', '.join(alert_reasons).lower()}",
                 "studentName": student.user.name if student.user else "Unknown",
                 "type": alert_reasons[0],
-                "createdAt": datetime.utcnow().isoformat(),
+                "createdAt": datetime.now(timezone.utc).isoformat(),
             })
 
     return success_response(data={

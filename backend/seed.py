@@ -5,11 +5,11 @@ Creates demo data matching the original Node.js seed (prisma/seed.ts).
 import uuid
 from datetime import datetime, timedelta
 
-from passlib.context import CryptContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from app.database import Base
+from app.utils.auth import hash_password
 from app.models.announcement import Announcement
 from app.models.attendance import Attendance
 from app.models.batch import Batch
@@ -29,8 +29,6 @@ from app.models.user import User
 DATABASE_URL = "sqlite:///./dev.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 STUDENT_NAMES = [
     "Aarav Sharma", "Vivaan Gupta", "Aditya Singh", "Vihaan Patel",
@@ -82,7 +80,7 @@ def seed():
         admin_user = User(
             id=generate_id(),
             email="admin@institute.com",
-            password=pwd_context.hash("admin123"),
+            password=hash_password("admin123"),
             role="ADMIN",
             name="Admin User",
             phone="9000000001",
@@ -100,7 +98,7 @@ def seed():
             user = User(
                 id=generate_id(),
                 email=td["email"],
-                password=pwd_context.hash("trainer123"),
+                password=hash_password("trainer123"),
                 role="TRAINER",
                 name=td["name"],
                 phone=f"900000000{len(trainers) + 2}",
@@ -121,7 +119,7 @@ def seed():
             user = User(
                 id=generate_id(),
                 email=cd["email"],
-                password=pwd_context.hash("counsellor123"),
+                password=hash_password("counsellor123"),
                 role="COUNSELLOR",
                 name=cd["name"],
                 phone=f"900000000{len(counsellors) + 5}",
@@ -205,7 +203,7 @@ def seed():
             user = User(
                 id=generate_id(),
                 email=f"student{i + 1}@institute.com",
-                password=pwd_context.hash("student123"),
+                password=hash_password("student123"),
                 role="STUDENT",
                 name=STUDENT_NAMES[i],
                 phone=f"98000000{i + 1:02d}",

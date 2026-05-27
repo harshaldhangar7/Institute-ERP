@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -14,7 +14,7 @@ class Student(Base):
     userId: Mapped[str] = mapped_column(String, ForeignKey("users.id"), unique=True, nullable=False)
     batchId: Mapped[str | None] = mapped_column(String, ForeignKey("batches.id"), nullable=True)
     counsellorId: Mapped[str | None] = mapped_column(String, ForeignKey("counsellors.id"), nullable=True)
-    enrollmentDate: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    enrollmentDate: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     mode: Mapped[str] = mapped_column(String, default="OFFLINE")
 
     user = relationship("User", back_populates="student")
