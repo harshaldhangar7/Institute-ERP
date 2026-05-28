@@ -19,9 +19,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      if (window.location.pathname !== '/login') {
+      // Only redirect if we're not already on the login page and not calling /auth/me (token verification)
+      const isAuthCheck = error.config?.url?.includes('/auth/me');
+      if (!isAuthCheck && window.location.pathname !== '/login') {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
         window.location.href = '/login';
       }
     }
