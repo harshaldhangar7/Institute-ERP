@@ -2,6 +2,18 @@
 
 A comprehensive Enterprise Resource Planning system for educational institutes. Manages students, trainers, counsellors, batches, attendance, evaluations, fees, and more through a modern web interface backed by a robust REST API.
 
+## Features
+
+- **Role-Based Access Control** - Four distinct user roles (Admin, Trainer, Counsellor, Student) with JWT authentication
+- **Attendance Management** - QR code-based and manual attendance tracking with session tokens
+- **Evaluation System** - Marks management, mock interviews with multi-parameter scoring
+- **Assignment & Resources** - File upload support for assignments, submissions, and learning resources
+- **Fee Management** - Track payments, pending amounts, due dates, and payment history
+- **Reporting** - Generate PDF and Excel reports for attendance and marks
+- **Notifications & Announcements** - Role-targeted and batch-specific announcements
+- **Dashboard Analytics** - Visual dashboards with Chart.js for each user role
+- **Batch & Module Management** - Organize students into batches, assign modules and trainers
+
 ## Tech Stack
 
 | Layer      | Technology                              |
@@ -30,10 +42,12 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 
 ## User Roles
 
-- **ADMIN** - Full system management (users, batches, modules, reports)
-- **TRAINER** - Lecture management, attendance, assignments, evaluations
-- **COUNSELLOR** - Student mentoring, progress tracking, mock interviews
-- **STUDENT** - View attendance, marks, assignments, fees, notifications
+| Role         | Capabilities                                                     |
+|--------------|------------------------------------------------------------------|
+| **Admin**    | Full system management — users, batches, modules, reports        |
+| **Trainer**  | Lectures, attendance, assignments, evaluations, mock interviews  |
+| **Counsellor** | Student mentoring, fee tracking, alerts                       |
+| **Student**  | View attendance, performance, assignments, resources, notifications |
 
 ## Getting Started
 
@@ -73,8 +87,8 @@ npm run install:backend
 npm run seed
 
 # Start development servers
-npm run dev:backend    # Backend on port 5000
-npm run dev:frontend   # Frontend on port 5173
+npm run dev:backend    # Backend on http://localhost:5000
+npm run dev:frontend   # Frontend on http://localhost:5173
 ```
 
 ### Docker Deployment
@@ -87,12 +101,12 @@ npm run docker:build
 npm run docker:run
 
 # Or run directly
-docker run -p 5000:5000 institute-erp
+docker run -p 5000:5000 -e JWT_SECRET=your-secret-key institute-erp
 ```
 
 The application will be available at `http://localhost:5000`.
 
-### Production Mode
+### Production Build
 
 ```bash
 cd backend
@@ -101,70 +115,84 @@ uvicorn app.main:app --host 0.0.0.0 --port 5000
 
 ## Default Credentials
 
-| Role       | Email                      | Password     |
-|------------|----------------------------|--------------|
-| Admin      | admin@institute.com        | admin123     |
-| Trainer    | trainer1@institute.com     | trainer123   |
-| Counsellor | counsellor1@institute.com  | counsellor123|
-| Student    | student1@institute.com     | student123   |
+| Role       | Email                      | Password      |
+|------------|----------------------------|---------------|
+| Admin      | admin@institute.com        | admin123      |
+| Trainer    | trainer1@institute.com     | trainer123    |
+| Counsellor | counsellor1@institute.com  | counsellor123 |
+| Student    | student1@institute.com     | student123    |
+
+## Environment Variables
+
+Create a `.env` file in the `backend/` directory (see `.env.example`):
+
+| Variable       | Default        | Description                          |
+|----------------|----------------|--------------------------------------|
+| `PORT`         | `5000`         | Server port                          |
+| `DATABASE_URL` | `file:./dev.db`| SQLite database file path            |
+| `JWT_SECRET`   | *(required)*   | Secret key for JWT token signing     |
+| `NODE_ENV`     | `development`  | Environment (`development`/`production`) |
 
 ## API Documentation
 
-All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the Authorization header.
+All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the `Authorization` header.
 
 FastAPI provides interactive API documentation at:
 - Swagger UI: `http://localhost:5000/docs`
 - ReDoc: `http://localhost:5000/redoc`
 
 ### Authentication
-- `POST /api/auth/login` - Login and receive JWT token
-- `GET /api/auth/me` - Get current user profile
-- `PUT /api/auth/change-password` - Change password
+| Method | Endpoint                  | Description              |
+|--------|---------------------------|--------------------------|
+| POST   | `/api/auth/login`         | Login and receive JWT    |
+| GET    | `/api/auth/me`            | Get current user profile |
+| PUT    | `/api/auth/change-password` | Change password        |
 
-### Admin
-- `GET /api/admin/dashboard` - Dashboard statistics
-- `CRUD /api/admin/users` - User management
-- `CRUD /api/admin/batches` - Batch management
-- `CRUD /api/admin/modules` - Module management
-- `POST /api/admin/batches/:id/modules` - Assign modules to batches
-- `POST /api/admin/batches/:id/trainers` - Assign trainers to batches
+### Admin (Role: ADMIN)
+| Method | Endpoint                          | Description                  |
+|--------|-----------------------------------|------------------------------|
+| GET    | `/api/admin/dashboard`            | Dashboard statistics         |
+| CRUD   | `/api/admin/users`                | User management              |
+| CRUD   | `/api/admin/batches`              | Batch management             |
+| CRUD   | `/api/admin/modules`              | Module management            |
+| POST   | `/api/admin/batches/:id/modules`  | Assign modules to batch      |
+| POST   | `/api/admin/batches/:id/trainers` | Assign trainers to batch     |
 
-### Trainer
-- `GET /api/trainer/dashboard` - Trainer dashboard
-- `CRUD /api/trainer/lectures` - Lecture management
-- `POST /api/trainer/attendance/mark` - Mark attendance
+### Trainer (Role: TRAINER)
+| Method | Endpoint                       | Description              |
+|--------|--------------------------------|--------------------------|
+| GET    | `/api/trainer/dashboard`       | Trainer dashboard        |
+| CRUD   | `/api/trainer/lectures`        | Lecture management       |
+| POST   | `/api/trainer/attendance/mark` | Mark attendance          |
 
-### Counsellor
-- `GET /api/counsellor/dashboard` - Counsellor dashboard
-- `GET /api/counsellor/students` - Assigned students list
+### Counsellor (Role: COUNSELLOR)
+| Method | Endpoint                     | Description              |
+|--------|------------------------------|--------------------------|
+| GET    | `/api/counsellor/dashboard`  | Counsellor dashboard     |
+| GET    | `/api/counsellor/students`   | Assigned students list   |
 
-### Student
-- `GET /api/student/dashboard` - Student dashboard
-- `GET /api/student/attendance` - Attendance records
-- `GET /api/student/marks` - Marks and evaluations
+### Student (Role: STUDENT)
+| Method | Endpoint                    | Description              |
+|--------|------------------------------|--------------------------|
+| GET    | `/api/student/dashboard`    | Student dashboard        |
+| GET    | `/api/student/attendance`   | Attendance records       |
+| GET    | `/api/student/marks`        | Marks and evaluations    |
 
-### Attendance
-- `POST /api/attendance/mark` - Mark attendance
-- `GET /api/attendance/lecture/:id` - Get lecture attendance
-
-### Evaluations & Marks
-- `POST /api/evaluation/marks` - Add marks
-- `GET /api/evaluation/student/:id` - Student evaluations
-
-### Assignments & Resources
-- `CRUD /api/assignments` - Assignment management
-- `CRUD /api/resources` - Resource management
-
-### Reports
-- `GET /api/reports/attendance` - Attendance reports (PDF/Excel)
-- `GET /api/reports/marks` - Marks reports
-
-### Notifications
-- `GET /api/notifications` - User notifications
-- `POST /api/notifications` - Create notification
-
-### Health
-- `GET /api/health` - API health check
+### Shared Endpoints
+| Method | Endpoint                       | Roles              | Description              |
+|--------|--------------------------------|--------------------|--------------------------|
+| POST   | `/api/attendance/mark`         | TRAINER, STUDENT   | Mark attendance          |
+| GET    | `/api/attendance/lecture/:id`  | TRAINER, STUDENT   | Get lecture attendance    |
+| POST   | `/api/evaluation/marks`        | TRAINER, ADMIN     | Add marks                |
+| GET    | `/api/evaluation/student/:id`  | TRAINER, ADMIN     | Student evaluations      |
+| CRUD   | `/api/mock-interviews`         | TRAINER            | Mock interview management|
+| CRUD   | `/api/assignments`             | TRAINER, STUDENT   | Assignment management    |
+| CRUD   | `/api/resources`               | TRAINER, STUDENT   | Resource management      |
+| GET    | `/api/reports/attendance`      | ADMIN, TRAINER     | Attendance reports (PDF/Excel) |
+| GET    | `/api/reports/marks`           | ADMIN, TRAINER     | Marks reports            |
+| GET    | `/api/notifications`           | All authenticated  | User notifications       |
+| POST   | `/api/notifications`           | All authenticated  | Create notification      |
+| GET    | `/api/health`                  | Public             | API health check         |
 
 ## Project Structure
 
@@ -222,6 +250,14 @@ python -m pytest tests/ -v
 # Frontend tests
 npm run test:frontend
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
