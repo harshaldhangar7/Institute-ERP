@@ -482,8 +482,33 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
         isActive=body.get("isActive", True),
     )
     db.add(batch)
+    db.flush()
+
+    # Assign modules if provided
+    module_ids = body.get("moduleIds", [])
+    for module_id in module_ids:
+        module = db.query(Module).filter(Module.id == module_id).first()
+        if module:
+            bm = BatchModule(batchId=batch.id, moduleId=module_id)
+            db.add(bm)
+
+    # Assign trainer if provided
+    trainer_id = body.get("trainerId")
+    if trainer_id:
+        trainer = db.query(Trainer).filter(Trainer.id == trainer_id).first()
+        if trainer:
+            tb = TrainerBatch(trainerId=trainer_id, batchId=batch.id)
+            db.add(tb)
+
     db.commit()
     db.refresh(batch)
+
+    # Re-query with eager loading for proper serialization
+    batch = db.query(Batch).options(
+        selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
+        selectinload(Batch.students),
+    ).filter(Batch.id == batch.id).first()
 
     return success_response(data=serialize_batch(batch), message="Batch created successfully", status_code=201)
 
@@ -508,8 +533,32 @@ async def update_batch(batch_id: str, request: Request, db: Session = Depends(ge
     if "isActive" in body:
         batch.isActive = body["isActive"]
 
+    # Update modules if provided — replace existing assignments
+    if "moduleIds" in body:
+        db.query(BatchModule).filter(BatchModule.batchId == batch_id).delete()
+        for module_id in body["moduleIds"]:
+            module = db.query(Module).filter(Module.id == module_id).first()
+            if module:
+                bm = BatchModule(batchId=batch_id, moduleId=module_id)
+                db.add(bm)
+
+    # Update trainer if provided — replace existing assignment
+    if "trainerId" in body:
+        db.query(TrainerBatch).filter(TrainerBatch.batchId == batch_id).delete()
+        if body["trainerId"]:
+            trainer = db.query(Trainer).filter(Trainer.id == body["trainerId"]).first()
+            if trainer:
+                tb = TrainerBatch(trainerId=body["trainerId"], batchId=batch_id)
+                db.add(tb)
+
     db.commit()
-    db.refresh(batch)
+
+    # Re-query with eager loading for proper serialization
+    batch = db.query(Batch).options(
+        selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
+        selectinload(Batch.students),
+    ).filter(Batch.id == batch_id).first()
 
     return success_response(data=serialize_batch(batch), message="Batch updated successfully")
 
