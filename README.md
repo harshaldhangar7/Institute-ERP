@@ -2,6 +2,18 @@
 
 A comprehensive Enterprise Resource Planning system for educational institutes. Manages students, trainers, counsellors, batches, attendance, evaluations, fees, and more through a modern web interface backed by a robust REST API.
 
+## Features
+
+- **Role-Based Access Control** - Four distinct user roles (Admin, Trainer, Counsellor, Student) with JWT authentication
+- **Attendance Management** - QR code-based and manual attendance tracking with session tokens
+- **Evaluation System** - Marks management, mock interviews with multi-parameter scoring
+- **Assignment & Resources** - File upload support for assignments, submissions, and learning resources
+- **Fee Management** - Track payments, pending amounts, due dates, and payment history
+- **Reporting** - Generate PDF and Excel reports for attendance and marks
+- **Notifications & Announcements** - Role-targeted and batch-specific announcements
+- **Dashboard Analytics** - Visual dashboards with Chart.js for each user role
+- **Batch & Module Management** - Organize students into batches, assign modules and trainers
+
 ## Tech Stack
 
 | Layer      | Technology                              |
@@ -104,8 +116,8 @@ npm run install:backend
 npm run seed
 
 # Start development servers
-npm run dev:backend    # Backend on port 5000
-npm run dev:frontend   # Frontend on port 5173
+npm run dev:backend    # Backend on http://localhost:5000
+npm run dev:frontend   # Frontend on http://localhost:5173
 ```
 
 ### Docker Deployment
@@ -118,12 +130,12 @@ npm run docker:build
 npm run docker:run
 
 # Or run directly
-docker run -p 5000:5000 institute-erp
+docker run -p 5000:5000 -e JWT_SECRET=your-secret-key institute-erp
 ```
 
 The application will be available at `http://localhost:5000`.
 
-### Production Mode
+### Production Build
 
 ```bash
 cd backend
@@ -132,16 +144,27 @@ uvicorn app.main:app --host 0.0.0.0 --port 5000
 
 ## Default Credentials
 
-| Role       | Email                      | Password     |
-|------------|----------------------------|--------------|
-| Admin      | admin@institute.com        | admin123     |
-| Trainer    | trainer1@institute.com     | trainer123   |
-| Counsellor | counsellor1@institute.com  | counsellor123|
-| Student    | student1@institute.com     | student123   |
+| Role       | Email                      | Password      |
+|------------|----------------------------|---------------|
+| Admin      | admin@institute.com        | admin123      |
+| Trainer    | trainer1@institute.com     | trainer123    |
+| Counsellor | counsellor1@institute.com  | counsellor123 |
+| Student    | student1@institute.com     | student123    |
+
+## Environment Variables
+
+Create a `.env` file in the `backend/` directory (see `.env.example`):
+
+| Variable       | Default        | Description                          |
+|----------------|----------------|--------------------------------------|
+| `PORT`         | `5000`         | Server port                          |
+| `DATABASE_URL` | `file:./dev.db`| SQLite database file path            |
+| `JWT_SECRET`   | *(required)*   | Secret key for JWT token signing     |
+| `NODE_ENV`     | `development`  | Environment (`development`/`production`) |
 
 ## API Documentation
 
-All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the Authorization header.
+All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the `Authorization` header.
 
 FastAPI provides interactive API documentation at:
 - Swagger UI: `http://localhost:5000/docs`
@@ -268,6 +291,14 @@ python -m pytest tests/ -v
 # Frontend tests
 npm run test:frontend
 ```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
