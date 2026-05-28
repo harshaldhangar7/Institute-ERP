@@ -31,9 +31,9 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 ## User Roles
 
 - **ADMIN** - Full system management (users, batches, modules, reports)
-- **TRAINER** - Lecture management, attendance, assignments, evaluations
-- **COUNSELLOR** - Student mentoring, progress tracking, mock interviews
-- **STUDENT** - View attendance, marks, assignments, fees, notifications
+- **TRAINER** - Lecture management, attendance, assignments, evaluations, mock interviews, resources, reports
+- **COUNSELLOR** - Student mentoring, fee tracking, alerts
+- **STUDENT** - View attendance, performance, assignments, resources, lectures, notifications
 
 ## Getting Started
 
@@ -154,11 +154,14 @@ FastAPI provides interactive API documentation at:
 
 ### Admin
 - `GET /api/admin/dashboard` - Dashboard statistics
-- `CRUD /api/admin/users` - User management
-- `CRUD /api/admin/batches` - Batch management
+- `CRUD /api/admin/students` - Student management
+- `CRUD /api/admin/trainers` - Trainer management
+- `CRUD /api/admin/counsellors` - Counsellor management
+- `CRUD /api/admin/batches` - Batch management (supports `moduleIds` and `trainerId` on create/update)
 - `CRUD /api/admin/modules` - Module management
-- `POST /api/admin/batches/:id/modules` - Assign modules to batches
-- `POST /api/admin/batches/:id/trainers` - Assign trainers to batches
+- `POST /api/admin/assign-module-batch` - Assign a module to a batch
+- `POST /api/admin/assign-trainer-batch` - Assign a trainer to a batch
+- `POST /api/admin/assign-counsellor-student` - Assign a counsellor to a student
 
 ### Trainer
 - `GET /api/trainer/dashboard` - Trainer dashboard
@@ -197,6 +200,14 @@ FastAPI provides interactive API documentation at:
 ### Health
 - `GET /api/health` - API health check
 
+## Key Features
+
+- **Batch-Module Integration** - Assign modules directly when creating or editing a batch (multi-select UI)
+- **QR-Based Attendance** - HMAC-signed QR codes for secure attendance marking
+- **Report Generation** - Export attendance and marks reports as PDF or Excel
+- **File Uploads** - Authenticated file serving for assignments and resources
+- **Real-time Notifications** - In-app notification system for announcements and alerts
+
 ## Project Structure
 
 ```
@@ -205,40 +216,44 @@ Institute-ERP/
 │   ├── app/
 │   │   ├── __init__.py       # Package init
 │   │   ├── main.py           # FastAPI app entry point
-│   │   ├── config.py         # App configuration
-│   │   ├── database.py       # SQLAlchemy database setup
-│   │   ├── dependencies.py   # Dependency injection (auth, etc.)
-│   │   ├── models/           # SQLAlchemy ORM models
-│   │   ├── routes/           # API route handlers
-│   │   └── utils/            # Response helpers, file upload
+│   │   ├── config.py         # App configuration (Pydantic Settings)
+│   │   ├── database.py       # SQLAlchemy engine & session setup
+│   │   ├── dependencies.py   # Dependency injection (auth, role guard)
+│   │   ├── models/           # SQLAlchemy ORM models (18 models)
+│   │   ├── routes/           # API route handlers (12 modules)
+│   │   └── utils/            # Auth helpers, response formatting, uploads
 │   ├── tests/                # Pytest API tests
 │   ├── uploads/              # File uploads directory
 │   ├── requirements.txt      # Python dependencies
 │   └── seed.py               # Demo data seeder
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx           # Root component with routing
-│   │   ├── pages/            # Page components by role
-│   │   ├── components/       # Shared UI components
+│   │   ├── App.tsx           # Root component with lazy-loaded routing
+│   │   ├── pages/            # Page components organized by role
+│   │   │   ├── admin/        # Admin pages (Dashboard, Students, Batches, etc.)
+│   │   │   ├── trainer/      # Trainer pages (Lectures, Attendance, etc.)
+│   │   │   ├── counsellor/   # Counsellor pages (Students, Fees, Alerts)
+│   │   │   └── student/      # Student pages (Performance, Assignments, etc.)
+│   │   ├── components/       # Shared UI components (Button, Modal, MultiSelect, etc.)
 │   │   ├── contexts/         # Auth context provider
-│   │   ├── hooks/            # Custom React hooks
+│   │   ├── hooks/            # Custom hooks (useApi, useAuth, usePagination)
 │   │   ├── services/         # API client (Axios)
-│   │   └── __tests__/        # Vitest component tests
+│   │   └── types/            # TypeScript type definitions
 │   └── dist/                 # Production build output
-├── Dockerfile                # Multi-stage Docker build
+├── Dockerfile                # Multi-stage Docker build (Node 22 + Python 3.13)
 ├── docker-compose.yml        # Docker Compose configuration
-├── package.json              # Root scripts configuration
 └── README.md                 # This file
 ```
 
 ## Environment Variables
 
-| Variable      | Default              | Description                    |
-|---------------|----------------------|--------------------------------|
-| PORT          | 5000                 | Server port                    |
-| DATABASE_URL  | sqlite:///./dev.db   | SQLAlchemy database URL        |
-| JWT_SECRET    | (required)           | Secret key for JWT signing     |
-| NODE_ENV      | development          | Environment (development/production) |
+| Variable       | Default              | Description                    |
+|----------------|----------------------|--------------------------------|
+| PORT           | 5000                 | Server port                    |
+| DATABASE_URL   | sqlite:///./dev.db   | SQLAlchemy database URL        |
+| JWT_SECRET     | (required)           | Secret key for JWT signing     |
+| NODE_ENV       | development          | Environment (development/production) |
+| QR_HMAC_SECRET | qr-hmac-secret-key   | Secret for QR code HMAC signing |
 
 ## Running Tests
 
