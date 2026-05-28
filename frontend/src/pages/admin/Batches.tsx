@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Input, Modal, Table, Spinner, Select } from '@/components/common';
+import { Button, Input, Modal, Table, Spinner, Select, MultiSelect } from '@/components/common';
 import api from '@/services/api';
 import toast from 'react-hot-toast';
 import { format } from 'date-fns';
@@ -7,10 +7,11 @@ import { format } from 'date-fns';
 export default function AdminBatches() {
   const [batches, setBatches] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<any[]>([]);
+  const [modules, setModules] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', startDate: '', endDate: '', trainerId: '', status: 'ACTIVE' });
+  const [form, setForm] = useState({ name: '', startDate: '', endDate: '', trainerId: '', moduleIds: [] as string[], status: 'ACTIVE' });
 
   const fetchBatches = async () => {
     setLoading(true);
@@ -33,7 +34,16 @@ export default function AdminBatches() {
     }
   };
 
-  useEffect(() => { fetchBatches(); fetchTrainers(); }, []);
+  const fetchModules = async () => {
+    try {
+      const res = await api.get('/admin/modules');
+      setModules(res.data.data?.modules || res.data.data || []);
+    } catch {
+      setModules([]);
+    }
+  };
+
+  useEffect(() => { fetchBatches(); fetchTrainers(); fetchModules(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -66,7 +76,7 @@ export default function AdminBatches() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', startDate: '', endDate: '', trainerId: '', status: 'ACTIVE' });
+    setForm({ name: '', startDate: '', endDate: '', trainerId: '', moduleIds: [], status: 'ACTIVE' });
     setModalOpen(true);
   };
 
@@ -76,7 +86,8 @@ export default function AdminBatches() {
       name: batch.name || '',
       startDate: batch.startDate?.split('T')[0] || '',
       endDate: batch.endDate?.split('T')[0] || '',
-      trainerId: batch.trainerId || '',
+      trainerId: batch.trainer?.id || '',
+      moduleIds: batch.modules?.map((m: any) => m.id) || [],
       status: batch.status || 'ACTIVE',
     });
     setModalOpen(true);
@@ -84,10 +95,11 @@ export default function AdminBatches() {
 
   const columns = [
     { key: 'name', header: 'Name', render: (item: any) => item.name },
+    { key: 'modules', header: 'Modules', render: (item: any) => item.modules?.map((m: any) => m.name).join(', ') || '-' },
     { key: 'trainer', header: 'Trainer', render: (item: any) => item.trainer?.user?.name || '-' },
     { key: 'startDate', header: 'Start Date', render: (item: any) => item.startDate ? format(new Date(item.startDate), 'MMM d, yyyy') : '-' },
     { key: 'status', header: 'Status', render: (item: any) => item.status || '-' },
-    { key: 'students', header: 'Students', render: (item: any) => item.students?.length || 0 },
+    { key: 'students', header: 'Students', render: (item: any) => item.studentCount || 0 },
     {
       key: 'actions',
       header: 'Actions',
@@ -115,6 +127,12 @@ export default function AdminBatches() {
           <Input label="Start Date" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
           <Input label="End Date" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
           <Select label="Trainer" value={form.trainerId} onChange={(e) => setForm({ ...form, trainerId: e.target.value })} options={trainers.map((t: any) => ({ value: t.id, label: t.user?.name || t.name || 'Unknown' }))} />
+          <MultiSelect
+            label="Modules"
+            options={modules.map((m: any) => ({ value: m.id, label: m.name }))}
+            value={form.moduleIds}
+            onChange={(moduleIds) => setForm({ ...form, moduleIds })}
+          />
           <Select label="Status" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'COMPLETED', label: 'Completed' }, { value: 'UPCOMING', label: 'Upcoming' }]} />
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="secondary" onClick={() => setModalOpen(false)} type="button">Cancel</Button>

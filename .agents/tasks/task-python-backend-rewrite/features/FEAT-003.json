@@ -1,0 +1,29 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Create the database seed script (Python equivalent of prisma/seed.ts), write pytest tests covering auth, admin, and trainer endpoints, and ensure the backend starts and responds correctly.",
+  "status": "completed",
+  "steps": [
+    "Create backend/seed.py - Python script that creates the same demo data as prisma/seed.ts: 1 admin (admin@institute.com/admin123), 3 trainers (trainer1-3@institute.com/trainer123), 2 counsellors (counsellor1-2@institute.com/counsellor123), 4 batches, 8 modules, batch-module assignments, trainer-batch assignments, 20 students (student1-20@institute.com/student123), counsellor-student assignments, 20 lectures, attendance records, marks, fees with payments, notifications, announcements. Uses bcrypt for password hashing. Creates tables via SQLAlchemy metadata.create_all().",
+    "Create backend/tests/__init__.py",
+    "Create backend/tests/conftest.py - pytest fixtures: test_app (FastAPI test client using httpx AsyncClient), test_db (in-memory SQLite or test.db, creates all tables, yields session, drops after), admin_token fixture (creates admin user, returns JWT), student_token/trainer_token fixtures.",
+    "Create backend/tests/test_auth.py - Tests for: POST /api/auth/login (valid creds, invalid creds, non-existent user), POST /api/auth/register (admin can register, reject without token, reject non-admin, reject duplicate email), GET /api/auth/me (returns profile, rejects unauthenticated), POST /api/auth/change-password (valid change, wrong current password).",
+    "Create backend/tests/test_admin.py - Tests for: GET /api/admin/dashboard, CRUD /api/admin/students (create, list with pagination, update, delete), CRUD /api/admin/batches (create, list, update, delete), assignment endpoints (assign-trainer-batch, assign-module-batch, assign-counsellor-student).",
+    "Create backend/tests/test_trainer.py - Tests for: GET /api/trainer/batches, POST /api/trainer/lectures, GET /api/trainer/lectures, PUT /api/trainer/lectures/:id/end.",
+    "Run the seed script to create initial database: cd backend && python seed.py",
+    "Run all tests: cd backend && python -m pytest tests/ -v"
+  ],
+  "acceptance_criteria": [
+    "seed.py creates all demo data matching the Node.js seed (same emails, passwords, batch names, module names, student names)",
+    "pytest tests pass for auth endpoints (login, register, me, change-password)",
+    "pytest tests pass for admin CRUD operations",
+    "pytest tests pass for trainer lecture management",
+    "At least 20 test cases total covering the core flows"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP/backend && python seed.py",
+    "cd /projects/sandbox/Institute-ERP/backend && python -m pytest tests/ -v"
+  ],
+  "blocked_reason": null,
+  "findings": "All 27 tests pass. Seed script creates all demo data (1 admin, 3 trainers, 2 counsellors, 20 students, 4 batches, 8 modules, 32 batch-module assignments, 6 trainer-batch assignments, 20 counsellor-student assignments, 20 lectures, 100 attendance records, 40 marks, 20 fees, 13 notifications, 3 announcements). Tests use a separate test.db file with session-level table creation and per-test rollback for isolation. Test database is cleaned up after the session."
+}

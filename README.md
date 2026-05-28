@@ -7,8 +7,8 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 | Layer      | Technology                              |
 |------------|-----------------------------------------|
 | Frontend   | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend    | Node.js, Express, TypeScript            |
-| Database   | SQLite via Prisma ORM                   |
+| Backend    | Python 3.11-3.13, FastAPI, SQLAlchemy   |
+| Database   | SQLite via SQLAlchemy ORM               |
 | Auth       | JWT with role-based access control      |
 | Container  | Docker (multi-stage build)              |
 
@@ -16,43 +16,91 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 
 ```
 +-------------------+         +-------------------+         +-----------+
-|                   |  HTTP   |                   |  Prisma |           |
-|  React Frontend   +-------->+  Express Backend  +-------->+  SQLite   |
+|                   |  HTTP   |                   | SQLAlchemy|           |
+|  React Frontend   +-------->+  FastAPI Backend  +-------->+  SQLite   |
 |  (Vite SPA)       |         |  (REST API)       |         |  Database |
 |                   |         |                   |         |           |
 +-------------------+         +-------------------+         +-----------+
         |                             |
    Port 5173 (dev)              Port 5000
-   Served by Express (prod)     /api/* routes
+   Served by FastAPI (prod)     /api/* routes
 ```
 
-In production, the Express server serves both the API and the compiled frontend as static files.
+In production, the FastAPI server serves both the API and the compiled frontend as static files.
 
 ## User Roles
 
 - **ADMIN** - Full system management (users, batches, modules, reports)
-- **TRAINER** - Lecture management, attendance, assignments, evaluations
-- **COUNSELLOR** - Student mentoring, progress tracking, mock interviews
-- **STUDENT** - View attendance, marks, assignments, fees, notifications
+- **TRAINER** - Lecture management, attendance, assignments, evaluations, mock interviews, resources, reports
+- **COUNSELLOR** - Student mentoring, fee tracking, alerts
+- **STUDENT** - View attendance, performance, assignments, resources, lectures, notifications
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 22+
+- Python 3.11+ (tested with 3.11, 3.12, and 3.13)
+- Node.js 22+ (for frontend build)
 - npm 10+
 - Docker (optional, for containerized deployment)
 
 ### Local Development
 
-```bash
-# Install dependencies
-npm install
+#### Quick Start (using setup script)
 
-# Build the project
-npm run build
+```bash
+# Linux/Mac
+cd backend
+./setup.sh
+
+# Windows
+cd backend
+setup.bat
+```
+
+The setup script creates a virtual environment, activates it, and installs all dependencies automatically.
+
+#### Manual Setup
+
+```bash
+# Create and activate a Python virtual environment
+cd backend
+
+# Linux/Mac
+python -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate
+```
+
+```bash
+# Install backend dependencies (with venv activated)
+pip install -r requirements.txt
 
 # Seed the database with demo data
+python seed.py
+
+# Start the backend server (from backend/ directory)
+uvicorn app.main:app --reload --port 5000
+
+# In another terminal, start the frontend
+cd frontend
+npm install
+npm run dev
+```
+
+> **Note:** Always activate the virtual environment before working on the backend.
+> Use `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate.bat` (Windows).
+
+Or using the root package.json scripts:
+
+```bash
+# Install backend deps
+npm run install:backend
+
+# Seed the database
 npm run seed
 
 # Start development servers
@@ -78,8 +126,8 @@ The application will be available at `http://localhost:5000`.
 ### Production Mode
 
 ```bash
-npm run build
-npm start
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 5000
 ```
 
 ## Default Credentials
@@ -95,6 +143,10 @@ npm start
 
 All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the Authorization header.
 
+FastAPI provides interactive API documentation at:
+- Swagger UI: `http://localhost:5000/docs`
+- ReDoc: `http://localhost:5000/redoc`
+
 ### Authentication
 - `POST /api/auth/login` - Login and receive JWT token
 - `GET /api/auth/me` - Get current user profile
@@ -102,11 +154,14 @@ All API endpoints are prefixed with `/api`. Authentication is required for most 
 
 ### Admin
 - `GET /api/admin/dashboard` - Dashboard statistics
-- `CRUD /api/admin/users` - User management
-- `CRUD /api/admin/batches` - Batch management
+- `CRUD /api/admin/students` - Student management
+- `CRUD /api/admin/trainers` - Trainer management
+- `CRUD /api/admin/counsellors` - Counsellor management
+- `CRUD /api/admin/batches` - Batch management (supports `moduleIds` and `trainerId` on create/update)
 - `CRUD /api/admin/modules` - Module management
-- `POST /api/admin/batches/:id/modules` - Assign modules to batches
-- `POST /api/admin/batches/:id/trainers` - Assign trainers to batches
+- `POST /api/admin/assign-module-batch` - Assign a module to a batch
+- `POST /api/admin/assign-trainer-batch` - Assign a trainer to a batch
+- `POST /api/admin/assign-counsellor-student` - Assign a counsellor to a student
 
 ### Trainer
 - `GET /api/trainer/dashboard` - Trainer dashboard
@@ -145,59 +200,72 @@ All API endpoints are prefixed with `/api`. Authentication is required for most 
 ### Health
 - `GET /api/health` - API health check
 
+## Key Features
+
+- **Batch-Module Integration** - Assign modules directly when creating or editing a batch (multi-select UI)
+- **QR-Based Attendance** - HMAC-signed QR codes for secure attendance marking
+- **Report Generation** - Export attendance and marks reports as PDF or Excel
+- **File Uploads** - Authenticated file serving for assignments and resources
+- **Real-time Notifications** - In-app notification system for announcements and alerts
+
 ## Project Structure
 
 ```
 Institute-ERP/
 ├── backend/
-│   ├── src/
-│   │   ├── index.ts          # Express app entry point
-│   │   ├── routes/           # API route handlers
-│   │   ├── services/         # Business logic
-│   │   ├── middleware/       # Auth, validation, upload
-│   │   ├── types/            # TypeScript type definitions
-│   │   ├── utils/            # Response helpers
-│   │   └── tests/            # Jest API tests
-│   ├── prisma/
-│   │   ├── schema.prisma     # Database schema
-│   │   └── seed.ts           # Demo data seeder
+│   ├── app/
+│   │   ├── __init__.py       # Package init
+│   │   ├── main.py           # FastAPI app entry point
+│   │   ├── config.py         # App configuration (Pydantic Settings)
+│   │   ├── database.py       # SQLAlchemy engine & session setup
+│   │   ├── dependencies.py   # Dependency injection (auth, role guard)
+│   │   ├── models/           # SQLAlchemy ORM models (18 models)
+│   │   ├── routes/           # API route handlers (12 modules)
+│   │   └── utils/            # Auth helpers, response formatting, uploads
+│   ├── tests/                # Pytest API tests
 │   ├── uploads/              # File uploads directory
-│   └── dist/                 # Compiled JavaScript output
+│   ├── requirements.txt      # Python dependencies
+│   └── seed.py               # Demo data seeder
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx           # Root component with routing
-│   │   ├── pages/            # Page components by role
-│   │   ├── components/       # Shared UI components
+│   │   ├── App.tsx           # Root component with lazy-loaded routing
+│   │   ├── pages/            # Page components organized by role
+│   │   │   ├── admin/        # Admin pages (Dashboard, Students, Batches, etc.)
+│   │   │   ├── trainer/      # Trainer pages (Lectures, Attendance, etc.)
+│   │   │   ├── counsellor/   # Counsellor pages (Students, Fees, Alerts)
+│   │   │   └── student/      # Student pages (Performance, Assignments, etc.)
+│   │   ├── components/       # Shared UI components (Button, Modal, MultiSelect, etc.)
 │   │   ├── contexts/         # Auth context provider
-│   │   ├── hooks/            # Custom React hooks
+│   │   ├── hooks/            # Custom hooks (useApi, useAuth, usePagination)
 │   │   ├── services/         # API client (Axios)
-│   │   └── __tests__/        # Vitest component tests
+│   │   └── types/            # TypeScript type definitions
 │   └── dist/                 # Production build output
-├── Dockerfile                # Multi-stage Docker build
+├── Dockerfile                # Multi-stage Docker build (Node 22 + Python 3.13)
 ├── docker-compose.yml        # Docker Compose configuration
-├── package.json              # Root workspace configuration
 └── README.md                 # This file
 ```
 
 ## Environment Variables
 
-| Variable      | Default              | Description                    |
-|---------------|----------------------|--------------------------------|
-| PORT          | 5000                 | Server port                    |
-| DATABASE_URL  | file:./dev.db        | SQLite database path           |
-| JWT_SECRET    | (required)           | Secret key for JWT signing     |
-| NODE_ENV      | development          | Environment (development/production) |
+| Variable       | Default              | Description                    |
+|----------------|----------------------|--------------------------------|
+| PORT           | 5000                 | Server port                    |
+| DATABASE_URL   | sqlite:///./dev.db   | SQLAlchemy database URL        |
+| JWT_SECRET     | (required)           | Secret key for JWT signing     |
+| NODE_ENV       | development          | Environment (development/production) |
+| QR_HMAC_SECRET | qr-hmac-secret-key   | Secret for QR code HMAC signing |
 
 ## Running Tests
 
 ```bash
-# Run all tests
-npm test
-
-# Backend tests only
+# Run backend tests
 npm run test:backend
 
-# Frontend tests only
+# Or directly with pytest
+cd backend
+python -m pytest tests/ -v
+
+# Frontend tests
 npm run test:frontend
 ```
 

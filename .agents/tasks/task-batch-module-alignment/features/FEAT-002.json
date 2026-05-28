@@ -1,0 +1,30 @@
+{
+  "id": "FEAT-002",
+  "type": "fix",
+  "description": "Update frontend pages across all roles to properly display batch-module alignment using the corrected backend responses.",
+  "status": "completed",
+  "steps": [
+    "Step 1: Update frontend/src/pages/admin/Batches.tsx - (a) Add a 'Modules' column to the table that shows the modules assigned to each batch (render module names as comma-separated list or badge chips), (b) Update the 'Students' column render to use item.studentCount instead of item.students?.length, (c) The 'Trainer' column render should already work with item.trainer?.user?.name pattern.",
+    "Step 2: Update frontend/src/pages/admin/Modules.tsx - Add a 'Batches' column to the table that shows which batches each module is assigned to (render batch names as comma-separated or badge chips).",
+    "Step 3: Update frontend/src/pages/student/Dashboard.tsx - (a) The backend now returns 'modules' with 'name' and 'progress' fields, so verify data.modules rendering works. (b) Change 'data?.attendance' stat to read from data.attendance (backend now sends this). (c) Change trainer display to read from data.batch?.trainer (backend now sends it there).",
+    "Step 4: Update frontend/src/pages/trainer/Dashboard.tsx - Verify it properly handles the new /api/trainer/dashboard response. The endpoint now exists and returns {batches, students, lectures, upcomingLectures}. The existing code already expects these fields, so just confirm the upcomingLectures rendering uses the correct field names (lecture.topic and lecture.date match the backend).",
+    "Step 5: Update frontend/src/pages/trainer/Batches.tsx - (a) Add modules display to each batch card (show module names assigned to the batch), (b) The batch data from GET /api/trainer/batches should also include modules - if not already returned by the backend for this endpoint, fetch modules per batch using existing /api/trainer/batches/{batch_id}/modules endpoint when a batch is selected.",
+    "Step 6: Update frontend/src/pages/counsellor/Dashboard.tsx - The backend already returns activeStudents, pendingFees, atRiskStudents. Now it also returns recentAlerts. Verify the rendering code handles the recentAlerts array correctly (expects alert.message, alert.studentName, alert.type)."
+  ],
+  "acceptance_criteria": [
+    "Admin Batches page shows modules column with module names for each batch",
+    "Admin Batches page shows correct student count per batch",
+    "Admin Modules page shows batches column with batch names for each module",
+    "Student Dashboard shows module progress bars with correct names and percentages",
+    "Student Dashboard shows attendance percentage and trainer name correctly",
+    "Trainer Dashboard loads without error and displays stats (batches, students, lectures)",
+    "Trainer Batches page shows modules assigned to each batch",
+    "Counsellor Dashboard shows recent alerts when available",
+    "Frontend builds without TypeScript errors: cd frontend && npm run build"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP/frontend && npm run build"
+  ],
+  "blocked_reason": null,
+  "findings": "Student Dashboard, Trainer Dashboard, and Counsellor Dashboard already had correct field mappings matching the FEAT-001 backend changes. Only Admin Batches (modules column + studentCount), Admin Modules (batches column), and Trainer Batches (modules fetch/display) needed code changes. Build passes cleanly."
+}

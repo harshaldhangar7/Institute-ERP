@@ -29,7 +29,7 @@ export function Table<T extends Record<string, any>>({ columns, data, onRowClick
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
-          {data.map((item, idx) => (
+          {(Array.isArray(data) ? data : []).map((item, idx) => (
             <tr
               key={idx}
               className={onRowClick ? 'cursor-pointer hover:bg-gray-50' : ''}
@@ -42,7 +42,7 @@ export function Table<T extends Record<string, any>>({ columns, data, onRowClick
               ))}
             </tr>
           ))}
-          {data.length === 0 && (
+          {(!Array.isArray(data) || data.length === 0) && (
             <tr>
               <td colSpan={columns.length} className="px-6 py-4 text-center text-sm text-gray-500">
                 No data available
