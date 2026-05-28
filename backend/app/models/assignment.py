@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import String, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -32,7 +32,7 @@ class Submission(Base):
     assignmentId: Mapped[str] = mapped_column(String, ForeignKey("assignments.id"), nullable=False)
     studentId: Mapped[str] = mapped_column(String, ForeignKey("students.id"), nullable=False)
     filePath: Mapped[str | None] = mapped_column(String, nullable=True)
-    submittedAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    submittedAt: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     grade: Mapped[str | None] = mapped_column(String, nullable=True)
     feedback: Mapped[str | None] = mapped_column(String, nullable=True)
 

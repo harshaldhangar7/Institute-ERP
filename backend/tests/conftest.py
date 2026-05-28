@@ -4,7 +4,6 @@ import uuid
 import pytest
 from fastapi.testclient import TestClient
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -19,13 +18,12 @@ from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
+from app.utils.auth import hash_password
 
 # Use a separate test database
 TEST_DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(TEST_DATABASE_URL, connect_args={"check_same_thread": False})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -58,14 +56,14 @@ def client(db_session):
 
 
 def _generate_token(user_id, email, role):
-    from datetime import datetime, timedelta
+    from datetime import datetime, timedelta, timezone
 
     return jwt.encode(
         {
             "userId": user_id,
             "email": email,
             "role": role,
-            "exp": datetime.utcnow() + timedelta(hours=24),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=24),
         },
         settings.JWT_SECRET,
         algorithm="HS256",
@@ -77,7 +75,7 @@ def admin_user(db_session):
     user = User(
         id=str(uuid.uuid4()),
         email=f"admin_{uuid.uuid4().hex[:8]}@test.com",
-        password=pwd_context.hash("admin123"),
+        password=hash_password("admin123"),
         role="ADMIN",
         name="Test Admin",
         phone="9000000001",
@@ -98,7 +96,7 @@ def trainer_user(db_session):
     user = User(
         id=str(uuid.uuid4()),
         email=f"trainer_{uuid.uuid4().hex[:8]}@test.com",
-        password=pwd_context.hash("trainer123"),
+        password=hash_password("trainer123"),
         role="TRAINER",
         name="Test Trainer",
         phone="9000000002",
@@ -128,7 +126,7 @@ def student_user(db_session):
     user = User(
         id=str(uuid.uuid4()),
         email=f"student_{uuid.uuid4().hex[:8]}@test.com",
-        password=pwd_context.hash("student123"),
+        password=hash_password("student123"),
         role="STUDENT",
         name="Test Student",
         phone="9000000003",

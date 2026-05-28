@@ -1,8 +1,8 @@
-from datetime import datetime
+from datetime import date, datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.dependencies import authenticate, role_guard
@@ -24,6 +24,48 @@ router = APIRouter(
 )
 
 
+@router.get("/dashboard")
+async def dashboard(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    # Get trainer's batches
+    trainer_batches = db.query(TrainerBatch).filter(TrainerBatch.trainerId == trainer.id).all()
+    batch_ids = [tb.batchId for tb in trainer_batches]
+
+    # Count students across all batches
+    student_count = db.query(Student).filter(Student.batchId.in_(batch_ids)).count() if batch_ids else 0
+
+    # Count lectures
+    lecture_count = db.query(Lecture).filter(Lecture.trainerId == trainer.id).count()
+
+    # Get upcoming lectures (date >= today)
+    today = date.today()
+    upcoming = db.query(Lecture).options(
+        joinedload(Lecture.batch),
+    ).filter(
+        Lecture.trainerId == trainer.id,
+        Lecture.date >= datetime.combine(today, datetime.min.time()),
+    ).order_by(Lecture.date.asc()).limit(5).all()
+
+    upcoming_data = [{
+        "topic": l.topics or "No topic",
+        "date": l.date.isoformat() if l.date else None,
+        "batch": l.batch.name if l.batch else None,
+    } for l in upcoming]
+
+    return success_response(data={
+        "batches": len(batch_ids),
+        "students": student_count,
+        "lectures": lecture_count,
+        "upcomingLectures": upcoming_data,
+    })
+
+
 @router.get("/batches")
 async def get_batches(
     current_user: dict = Depends(role_guard(["TRAINER"])),
@@ -37,13 +79,18 @@ async def get_batches(
     batch_ids = [tb.batchId for tb in trainer_batches]
     batches = db.query(Batch).filter(Batch.id.in_(batch_ids)).all()
 
-    data = [{
-        "id": b.id,
-        "name": b.name,
-        "startDate": b.startDate.isoformat() if b.startDate else None,
-        "endDate": b.endDate.isoformat() if b.endDate else None,
-        "isActive": b.isActive,
-    } for b in batches]
+    data = []
+    for b in batches:
+        student_count = db.query(Student).filter(Student.batchId == b.id).count()
+        data.append({
+            "id": b.id,
+            "name": b.name,
+            "startDate": b.startDate.isoformat() if b.startDate else None,
+            "endDate": b.endDate.isoformat() if b.endDate else None,
+            "isActive": b.isActive,
+            "status": "ACTIVE" if b.isActive else "COMPLETED",
+            "studentCount": student_count,
+        })
 
     return success_response(data=data)
 
@@ -179,7 +226,7 @@ async def end_lecture(
         return error_response("Lecture not found", 404)
 
     # Calculate duration from startTime to now
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     try:
         start_parts = lecture.startTime.split(":")
         start_hour = int(start_parts[0])

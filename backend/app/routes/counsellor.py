@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import func
@@ -279,6 +279,7 @@ async def dashboard(
 
     # Count at-risk students
     at_risk = 0
+    recent_alerts = []
     students = db.query(Student).filter(Student.id.in_(student_ids)).all() if student_ids else []
     for student in students:
         total_lectures = 0
@@ -293,8 +294,20 @@ async def dashboard(
             Marks.studentId == student.id
         ).scalar() or 0
 
-        if (attendance_pct < 75 and total_lectures > 0) or (float(avg_marks) < 40 and float(avg_marks) > 0):
+        alert_reasons = []
+        if attendance_pct < 75 and total_lectures > 0:
+            alert_reasons.append("Low attendance")
+        if float(avg_marks) < 40 and float(avg_marks) > 0:
+            alert_reasons.append("Poor performance")
+
+        if alert_reasons:
             at_risk += 1
+            recent_alerts.append({
+                "message": f"Student has {', '.join(alert_reasons).lower()}",
+                "studentName": student.user.name if student.user else "Unknown",
+                "type": alert_reasons[0],
+                "createdAt": datetime.now(timezone.utc).isoformat(),
+            })
 
     return success_response(data={
         "activeStudents": active_students,
@@ -303,4 +316,5 @@ async def dashboard(
         "collectedFees": collected_fees,
         "pendingFees": pending_fees,
         "atRiskStudents": at_risk,
+        "recentAlerts": recent_alerts[:10],
     })

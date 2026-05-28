@@ -1,8 +1,7 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, Request
 from jose import jwt
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -12,11 +11,10 @@ from app.models.counsellor import Counsellor
 from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.user import User
+from app.utils.auth import hash_password, verify_password
 from app.utils.response import error_response, success_response
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def serialize_user(user: User) -> dict:
@@ -50,7 +48,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
     if not user:
         return error_response("Invalid credentials", 401)
 
-    if not pwd_context.verify(password, user.password):
+    if not verify_password(password, user.password):
         return error_response("Invalid credentials", 401)
 
     if not user.isActive:
@@ -61,7 +59,7 @@ async def login(request: Request, db: Session = Depends(get_db)):
             "userId": user.id,
             "email": user.email,
             "role": user.role,
-            "exp": datetime.utcnow() + timedelta(hours=24),
+            "exp": datetime.now(timezone.utc) + timedelta(hours=24),
         },
         settings.JWT_SECRET,
         algorithm="HS256",
@@ -94,7 +92,7 @@ async def register(
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(
         email=email,
         password=hashed_password,
@@ -154,11 +152,11 @@ async def change_password(
     if not user:
         return error_response("User not found", 404)
 
-    if not pwd_context.verify(current_password, user.password):
+    if not verify_password(current_password, user.password):
         return error_response("Current password is incorrect", 400)
 
-    user.password = pwd_context.hash(new_password)
-    user.updatedAt = datetime.utcnow()
+    user.password = hash_password(new_password)
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
 
     return success_response(message="Password changed successfully")

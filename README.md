@@ -19,7 +19,7 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 | Layer      | Technology                              |
 |------------|-----------------------------------------|
 | Frontend   | React 18, TypeScript, Vite, Tailwind CSS |
-| Backend    | Python 3.11, FastAPI, SQLAlchemy        |
+| Backend    | Python 3.11-3.13, FastAPI, SQLAlchemy   |
 | Database   | SQLite via SQLAlchemy ORM               |
 | Auth       | JWT with role-based access control      |
 | Container  | Docker (multi-stage build)              |
@@ -53,16 +53,44 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (tested with 3.11, 3.12, and 3.13)
 - Node.js 22+ (for frontend build)
 - npm 10+
 - Docker (optional, for containerized deployment)
 
 ### Local Development
 
+#### Quick Start (using setup script)
+
 ```bash
-# Install backend dependencies
+# Linux/Mac
 cd backend
+./setup.sh
+
+# Windows
+cd backend
+setup.bat
+```
+
+The setup script creates a virtual environment, activates it, and installs all dependencies automatically.
+
+#### Manual Setup
+
+```bash
+# Create and activate a Python virtual environment
+cd backend
+
+# Linux/Mac
+python -m venv venv
+source venv/bin/activate
+
+# Windows
+python -m venv venv
+venv\Scripts\activate.bat
+```
+
+```bash
+# Install backend dependencies (with venv activated)
 pip install -r requirements.txt
 
 # Seed the database with demo data
@@ -76,6 +104,9 @@ cd frontend
 npm install
 npm run dev
 ```
+
+> **Note:** Always activate the virtual environment before working on the backend.
+> Use `source venv/bin/activate` (Linux/Mac) or `venv\Scripts\activate.bat` (Windows).
 
 Or using the root package.json scripts:
 

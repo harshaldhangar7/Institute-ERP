@@ -1,10 +1,7 @@
 import uuid
 
-from passlib.context import CryptContext
-
 from app.models.user import User
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from app.utils.auth import hash_password
 
 
 class TestLogin:
@@ -13,7 +10,7 @@ class TestLogin:
         user = User(
             id=str(uuid.uuid4()),
             email=f"login_valid_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("admin123"),
+            password=hash_password("admin123"),
             role="ADMIN",
             name="Login Test User",
             isActive=True,
@@ -37,7 +34,7 @@ class TestLogin:
         user = User(
             id=str(uuid.uuid4()),
             email=f"login_invalid_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("correct_pass"),
+            password=hash_password("correct_pass"),
             role="ADMIN",
             name="Invalid Pass Test",
             isActive=True,
@@ -111,7 +108,7 @@ class TestRegister:
         user = User(
             id=str(uuid.uuid4()),
             email=existing_email,
-            password=pwd_context.hash("pass"),
+            password=hash_password("pass"),
             role="STUDENT",
             name="Existing User",
             isActive=True,
@@ -158,7 +155,7 @@ class TestChangePassword:
         user = User(
             id=str(uuid.uuid4()),
             email=f"chgpwd_{uuid.uuid4().hex[:8]}@test.com",
-            password=pwd_context.hash("oldpass123"),
+            password=hash_password("oldpass123"),
             role="ADMIN",
             name="Change Pass User",
             isActive=True,
@@ -168,10 +165,10 @@ class TestChangePassword:
 
         from app.config import settings
         from jose import jwt
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         token = jwt.encode(
-            {"userId": user.id, "email": user.email, "role": user.role, "exp": datetime.utcnow() + timedelta(hours=24)},
+            {"userId": user.id, "email": user.email, "role": user.role, "exp": datetime.now(timezone.utc) + timedelta(hours=24)},
             settings.JWT_SECRET,
             algorithm="HS256",
         )

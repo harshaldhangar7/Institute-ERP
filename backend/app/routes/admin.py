@@ -1,9 +1,8 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
-from passlib.context import CryptContext
 from sqlalchemy import func
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.database import get_db
 from app.dependencies import authenticate, role_guard
@@ -21,6 +20,7 @@ from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.trainer_batch import TrainerBatch
 from app.models.user import User
+from app.utils.auth import hash_password
 from app.utils.response import error_response, paginated_response, success_response
 
 router = APIRouter(
@@ -28,8 +28,6 @@ router = APIRouter(
     tags=["admin"],
     dependencies=[Depends(authenticate), Depends(role_guard(["ADMIN"]))],
 )
-
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def serialize_user(user: User) -> dict:
@@ -90,22 +88,47 @@ def serialize_counsellor(counsellor: Counsellor) -> dict:
 
 
 def serialize_batch(batch: Batch) -> dict:
+    # Get trainer from trainerBatches relationship
+    trainer_data = None
+    if batch.trainerBatches:
+        tb = next((t for t in batch.trainerBatches if t.trainer and t.trainer.user), None)
+        if tb:
+            trainer_data = {"id": tb.trainer.id, "user": {"name": tb.trainer.user.name}}
+
     return {
         "id": batch.id,
         "name": batch.name,
         "startDate": batch.startDate.isoformat() if batch.startDate else None,
         "endDate": batch.endDate.isoformat() if batch.endDate else None,
         "isActive": batch.isActive,
+        "status": "ACTIVE" if batch.isActive else "COMPLETED",
+        "studentCount": len(batch.students) if batch.students else 0,
+        "modules": [
+            {
+                "id": bm.module.id,
+                "name": bm.module.name,
+                "status": bm.status,
+                "completionPercent": bm.completionPercent,
+            }
+            for bm in (batch.batchModules or [])
+            if bm.module
+        ],
+        "trainer": trainer_data,
     }
 
 
 def serialize_module(module: Module) -> dict:
-    return {
+    result = {
         "id": module.id,
         "name": module.name,
         "description": module.description,
         "duration": module.duration,
     }
+    if hasattr(module, 'batchModules') and module.batchModules:
+        result["batches"] = [{"id": bm.batch.id, "name": bm.batch.name} for bm in module.batchModules if bm.batch]
+    else:
+        result["batches"] = []
+    return result
 
 
 # Dashboard
@@ -173,7 +196,7 @@ async def create_student(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="STUDENT", phone=phone)
     db.add(user)
     db.flush()
@@ -214,7 +237,7 @@ async def update_student(student_id: str, request: Request, db: Session = Depend
     if "counsellorId" in body:
         student.counsellorId = body["counsellorId"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(student)
 
@@ -276,7 +299,7 @@ async def create_trainer(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="TRAINER", phone=phone)
     db.add(user)
     db.flush()
@@ -313,7 +336,7 @@ async def update_trainer(trainer_id: str, request: Request, db: Session = Depend
     if "specialization" in body:
         trainer.specialization = body["specialization"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(trainer)
 
@@ -366,7 +389,7 @@ async def create_counsellor(request: Request, db: Session = Depends(get_db)):
     if existing:
         return error_response("Email already exists", 400)
 
-    hashed_password = pwd_context.hash(password)
+    hashed_password = hash_password(password)
     user = User(email=email, password=hashed_password, name=name, role="COUNSELLOR", phone=phone)
     db.add(user)
     db.flush()
@@ -401,7 +424,7 @@ async def update_counsellor(counsellor_id: str, request: Request, db: Session = 
     if "isActive" in body:
         user.isActive = body["isActive"]
 
-    user.updatedAt = datetime.utcnow()
+    user.updatedAt = datetime.now(timezone.utc)
     db.commit()
     db.refresh(counsellor)
 
@@ -430,7 +453,11 @@ async def delete_counsellor(counsellor_id: str, db: Session = Depends(get_db)):
 async def get_batches(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     total = db.query(Batch).count()
-    batches = db.query(Batch).offset(offset).limit(limit).all()
+    batches = db.query(Batch).options(
+        selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
+        selectinload(Batch.students),
+    ).offset(offset).limit(limit).all()
     data = [serialize_batch(b) for b in batches]
     return paginated_response(data, total, page, limit)
 
@@ -508,7 +535,9 @@ async def delete_batch(batch_id: str, db: Session = Depends(get_db)):
 async def get_modules(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
     offset = (page - 1) * limit
     total = db.query(Module).count()
-    modules = db.query(Module).offset(offset).limit(limit).all()
+    modules = db.query(Module).options(
+        selectinload(Module.batchModules).joinedload(BatchModule.batch),
+    ).offset(offset).limit(limit).all()
     data = [serialize_module(m) for m in modules]
     return paginated_response(data, total, page, limit)
 

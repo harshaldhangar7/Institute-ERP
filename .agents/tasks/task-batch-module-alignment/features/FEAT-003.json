@@ -1,0 +1,21 @@
+{
+  "id": "FEAT-003",
+  "type": "feat",
+  "description": "Add backend tests for the new trainer dashboard endpoint and the updated admin serializers to ensure batch-module alignment is covered by tests.",
+  "status": "completed",
+  "steps": [
+    "Step 1: Add tests in backend/tests/test_trainer.py for the new GET /api/trainer/dashboard endpoint. Test cases: (a) returns correct batch count for the trainer, (b) returns correct student count across trainer's batches, (c) returns correct lecture count, (d) returns upcomingLectures for lectures with date >= today. Follow existing test patterns - use trainer_user/trainer_token fixtures, create Batch + TrainerBatch + Student + Lecture records.",
+    "Step 2: Add tests in backend/tests/test_admin.py for the updated GET /api/admin/batches endpoint. Test cases: (a) response includes 'modules' array in each batch, (b) response includes 'trainer' object in each batch, (c) response includes 'studentCount'. Set up BatchModule + TrainerBatch + Student records for the test batch.",
+    "Step 3: Add tests in backend/tests/test_admin.py for the updated GET /api/admin/modules endpoint. Test case: response includes 'batches' array in each module. Set up BatchModule record linking module to a batch."
+  ],
+  "acceptance_criteria": [
+    "All new tests pass: cd backend && python -m pytest tests/ -v",
+    "New tests actually exercise the new code paths (trainer dashboard endpoint, batch serializer with modules, module serializer with batches)",
+    "Tests would fail if the new code were reverted (they assert on the new fields like modules, trainer, studentCount, upcomingLectures)"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP/backend && python -m pytest tests/ -v"
+  ],
+  "blocked_reason": null,
+  "findings": "All 31 tests pass (4 new tests added: TestTrainerDashboard with 2 tests, TestBatchesSerializer with 1 test, TestModulesSerializer with 1 test). Tests verify the new trainer dashboard endpoint returns correct stats and the admin batch/module serializers include modules, trainer, studentCount, status, and batches fields respectively."
+}
