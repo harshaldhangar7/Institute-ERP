@@ -1,0 +1,27 @@
+{
+  "id": "FEAT-004",
+  "type": "chore",
+  "description": "Update the root package.json scripts, Dockerfile, docker-compose.yml, and README.md to work with the Python FastAPI backend instead of the Node.js backend.",
+  "status": "completed",
+  "steps": [
+    "Update root package.json: change scripts to use Python commands for backend: 'dev:backend' -> 'cd backend && uvicorn app.main:app --reload --port 5000', 'build:backend' -> 'cd backend && pip install -r requirements.txt', 'test:backend' -> 'cd backend && python -m pytest tests/ -v', 'seed' -> 'cd backend && python seed.py', 'start' -> 'cd backend && uvicorn app.main:app --port 5000'. Keep frontend scripts unchanged. Remove the 'workspaces' field since backend is no longer an npm workspace.",
+    "Update Dockerfile to a multi-stage build: Stage 1 (frontend-build): node:22-alpine, build the frontend (npm install in frontend/, npm run build). Stage 2 (production): python:3.11-slim, install Python deps from backend/requirements.txt, copy backend/app and backend/seed.py, copy frontend/dist for static serving, create uploads dir, expose 5000, CMD uvicorn app.main:app --host 0.0.0.0 --port 5000.",
+    "Update docker-compose.yml: remove NODE_ENV, keep PORT=5000, add JWT_SECRET, DATABASE_URL=sqlite:///./dev.db, update volumes for Python backend paths.",
+    "Update README.md: change tech stack table (Backend -> Python, FastAPI, SQLAlchemy), update architecture diagram, update Getting Started section (pip install, uvicorn commands), update Project Structure to reflect Python layout, update Environment Variables section, update Running Tests section (pytest), keep Docker section mostly the same.",
+    "Create backend/.gitignore with: __pycache__/, *.pyc, .env, venv/, *.egg-info/, dist/, .pytest_cache/, dev.db, test.db"
+  ],
+  "acceptance_criteria": [
+    "Root package.json scripts correctly invoke Python backend commands",
+    "Dockerfile builds successfully with python:3.11-slim base for production stage",
+    "docker-compose.yml correctly configures the Python backend",
+    "README.md accurately describes the new Python tech stack and commands",
+    "backend/.gitignore correctly excludes Python artifacts"
+  ],
+  "verification": [
+    "cd /projects/sandbox/Institute-ERP && cat package.json | python3 -c \"import json,sys; d=json.load(sys.stdin); print('Scripts:', list(d.get('scripts',{}).keys()))\"",
+    "cd /projects/sandbox/Institute-ERP && cat Dockerfile",
+    "cd /projects/sandbox/Institute-ERP && cat docker-compose.yml"
+  ],
+  "blocked_reason": null,
+  "findings": "All root config files updated successfully. package.json scripts now reference Python/uvicorn commands, Dockerfile uses multi-stage build with python:3.11-slim, docker-compose.yml uses SQLAlchemy DATABASE_URL format, README.md reflects Python/FastAPI tech stack, backend/.gitignore added for Python artifacts."
+}

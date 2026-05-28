@@ -16,35 +16,29 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 
 ## Tech Stack
 
-| Layer      | Technology                                          |
-|------------|-----------------------------------------------------|
-| Frontend   | React 18, TypeScript, Vite, Tailwind CSS            |
-| State      | TanStack React Query, React Context                 |
-| UI         | Headless UI, Heroicons, Chart.js, React Hot Toast   |
-| Backend    | Node.js 22, Express, TypeScript                     |
-| Database   | SQLite via Prisma ORM                               |
-| Validation | Zod                                                 |
-| Auth       | JWT with role-based access control (bcryptjs)       |
-| File I/O   | Multer (uploads), PDFKit (PDF), ExcelJS (Excel)     |
-| QR Code    | qrcode.react (generation), html5-qrcode (scanning) |
-| Testing    | Jest + Supertest (backend), Vitest + Testing Library (frontend) |
-| Container  | Docker (multi-stage build), Docker Compose          |
+| Layer      | Technology                              |
+|------------|-----------------------------------------|
+| Frontend   | React 18, TypeScript, Vite, Tailwind CSS |
+| Backend    | Python 3.11, FastAPI, SQLAlchemy        |
+| Database   | SQLite via SQLAlchemy ORM               |
+| Auth       | JWT with role-based access control      |
+| Container  | Docker (multi-stage build)              |
 
 ## Architecture
 
 ```
-┌───────────────────┐         ┌───────────────────┐         ┌───────────┐
-│                   │  HTTP   │                   │  Prisma │           │
-│  React Frontend   ├────────►│  Express Backend  ├────────►│  SQLite   │
-│  (Vite SPA)       │         │  (REST API)       │         │  Database │
-│                   │         │                   │         │           │
-└───────────────────┘         └───────────────────┘         └───────────┘
-        │                             │
++-------------------+         +-------------------+         +-----------+
+|                   |  HTTP   |                   | SQLAlchemy|           |
+|  React Frontend   +-------->+  FastAPI Backend  +-------->+  SQLite   |
+|  (Vite SPA)       |         |  (REST API)       |         |  Database |
+|                   |         |                   |         |           |
++-------------------+         +-------------------+         +-----------+
+        |                             |
    Port 5173 (dev)              Port 5000
-   Served by Express (prod)     /api/* routes
+   Served by FastAPI (prod)     /api/* routes
 ```
 
-In production, the Express server serves both the API and the compiled frontend as static files.
+In production, the FastAPI server serves both the API and the compiled frontend as static files.
 
 ## User Roles
 
@@ -59,27 +53,37 @@ In production, the Express server serves both the API and the compiled frontend 
 
 ### Prerequisites
 
-- Node.js 22+
+- Python 3.11+
+- Node.js 22+ (for frontend build)
 - npm 10+
 - Docker (optional, for containerized deployment)
 
 ### Local Development
 
 ```bash
-# Clone the repository
-git clone https://github.com/harshaldhangar7/Institute-ERP.git
-cd Institute-ERP
-
-# Install dependencies (npm workspaces)
-npm install
-
-# Generate Prisma client
-npx prisma generate --schema=backend/prisma/schema.prisma
-
-# Run database migrations
-npx prisma db push --schema=backend/prisma/schema.prisma
+# Install backend dependencies
+cd backend
+pip install -r requirements.txt
 
 # Seed the database with demo data
+python seed.py
+
+# Start the backend server (from backend/ directory)
+uvicorn app.main:app --reload --port 5000
+
+# In another terminal, start the frontend
+cd frontend
+npm install
+npm run dev
+```
+
+Or using the root package.json scripts:
+
+```bash
+# Install backend deps
+npm run install:backend
+
+# Seed the database
 npm run seed
 
 # Start development servers
@@ -105,8 +109,8 @@ The application will be available at `http://localhost:5000`.
 ### Production Build
 
 ```bash
-npm run build
-npm start
+cd backend
+uvicorn app.main:app --host 0.0.0.0 --port 5000
 ```
 
 ## Default Credentials
@@ -132,6 +136,10 @@ Create a `.env` file in the `backend/` directory (see `.env.example`):
 ## API Documentation
 
 All API endpoints are prefixed with `/api`. Authentication is required for most endpoints via a Bearer token in the `Authorization` header.
+
+FastAPI provides interactive API documentation at:
+- Swagger UI: `http://localhost:5000/docs`
+- ReDoc: `http://localhost:5000/redoc`
 
 ### Authentication
 | Method | Endpoint                  | Description              |
@@ -191,91 +199,55 @@ All API endpoints are prefixed with `/api`. Authentication is required for most 
 ```
 Institute-ERP/
 ├── backend/
-│   ├── src/
-│   │   ├── index.ts              # Express app entry point
-│   │   ├── routes/               # API route handlers
-│   │   │   ├── index.ts          # Route registry with role guards
-│   │   │   ├── auth.ts           # Authentication routes
-│   │   │   ├── admin.ts          # Admin management routes
-│   │   │   ├── trainer.ts        # Trainer routes
-│   │   │   ├── counsellor.ts     # Counsellor routes
-│   │   │   ├── student.ts        # Student routes
-│   │   │   ├── attendance.ts     # Attendance routes
-│   │   │   ├── evaluation.ts     # Marks/evaluation routes
-│   │   │   ├── mock-interview.ts # Mock interview routes
-│   │   │   ├── assignments.ts    # Assignment routes
-│   │   │   ├── resources.ts      # Resource routes
-│   │   │   ├── reports.ts        # PDF/Excel report routes
-│   │   │   └── notifications.ts  # Notification routes
-│   │   ├── services/             # Business logic layer
-│   │   ├── middleware/           # Auth, validation, file upload
-│   │   ├── types/                # TypeScript type definitions
-│   │   ├── utils/                # Response helpers
-│   │   └── tests/                # Jest API tests
-│   ├── prisma/
-│   │   ├── schema.prisma         # Database schema (17 models)
-│   │   └── seed.ts               # Demo data seeder
-│   ├── uploads/                  # File uploads directory
-│   └── package.json
+│   ├── app/
+│   │   ├── __init__.py       # Package init
+│   │   ├── main.py           # FastAPI app entry point
+│   │   ├── config.py         # App configuration
+│   │   ├── database.py       # SQLAlchemy database setup
+│   │   ├── dependencies.py   # Dependency injection (auth, etc.)
+│   │   ├── models/           # SQLAlchemy ORM models
+│   │   ├── routes/           # API route handlers
+│   │   └── utils/            # Response helpers, file upload
+│   ├── tests/                # Pytest API tests
+│   ├── uploads/              # File uploads directory
+│   ├── requirements.txt      # Python dependencies
+│   └── seed.py               # Demo data seeder
 ├── frontend/
 │   ├── src/
-│   │   ├── App.tsx               # Root component with routing
-│   │   ├── pages/                # Page components by role
-│   │   │   ├── admin/            # Admin pages (Dashboard, Students, etc.)
-│   │   │   ├── trainer/          # Trainer pages (Lectures, Attendance, etc.)
-│   │   │   ├── counsellor/       # Counsellor pages (Students, Fees, etc.)
-│   │   │   └── student/          # Student pages (Performance, etc.)
-│   │   ├── components/           # Shared UI components
-│   │   │   └── common/           # Reusable: Button, Card, Table, Modal, etc.
-│   │   ├── contexts/             # Auth context provider
-│   │   ├── hooks/                # Custom React hooks
-│   │   ├── services/             # API client (Axios)
-│   │   └── __tests__/            # Vitest component tests
-│   └── package.json
-├── Dockerfile                    # Multi-stage Docker build
-├── docker-compose.yml            # Docker Compose configuration
-├── package.json                  # Root workspace configuration
-└── README.md
+│   │   ├── App.tsx           # Root component with routing
+│   │   ├── pages/            # Page components by role
+│   │   ├── components/       # Shared UI components
+│   │   ├── contexts/         # Auth context provider
+│   │   ├── hooks/            # Custom React hooks
+│   │   ├── services/         # API client (Axios)
+│   │   └── __tests__/        # Vitest component tests
+│   └── dist/                 # Production build output
+├── Dockerfile                # Multi-stage Docker build
+├── docker-compose.yml        # Docker Compose configuration
+├── package.json              # Root scripts configuration
+└── README.md                 # This file
 ```
 
-## Database Schema
+## Environment Variables
 
-The application uses 20 database models including:
-
-- **User Management**: User, Student, Trainer, Counsellor
-- **Academic Structure**: Batch, Module, BatchModule, TrainerBatch
-- **Lectures & Attendance**: Lecture, Attendance (with QR session tokens)
-- **Evaluation**: Marks, MockInterview
-- **Assignments**: Assignment, Submission
-- **Resources**: Resource (file-based learning materials)
-- **Financial**: Fee, FeePayment
-- **Communication**: Notification, Announcement, CounsellorStudent
-
-## Scripts Reference
-
-| Script               | Description                              |
-|----------------------|------------------------------------------|
-| `npm run build`      | Build both backend and frontend          |
-| `npm run dev:backend`| Start backend dev server (port 5000)     |
-| `npm run dev:frontend`| Start frontend dev server (port 5173)   |
-| `npm run seed`       | Seed database with demo data             |
-| `npm run test`       | Run all tests (backend + frontend)       |
-| `npm run test:backend`| Run backend tests only                  |
-| `npm run test:frontend`| Run frontend tests only                |
-| `npm start`          | Start production server                  |
-| `npm run docker:build`| Build Docker image                      |
-| `npm run docker:run` | Run with Docker Compose                  |
+| Variable      | Default              | Description                    |
+|---------------|----------------------|--------------------------------|
+| PORT          | 5000                 | Server port                    |
+| DATABASE_URL  | sqlite:///./dev.db   | SQLAlchemy database URL        |
+| JWT_SECRET    | (required)           | Secret key for JWT signing     |
+| NODE_ENV      | development          | Environment (development/production) |
 
 ## Running Tests
 
 ```bash
-# Run all tests
-npm test
-
-# Backend tests only (Jest + Supertest)
+# Run backend tests
 npm run test:backend
 
-# Frontend tests only (Vitest + Testing Library)
+# Or directly with pytest
+cd backend
+python -m pytest tests/ -v
+
+# Frontend tests
 npm run test:frontend
 ```
 
