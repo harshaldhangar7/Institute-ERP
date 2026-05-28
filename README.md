@@ -72,7 +72,7 @@ source venv/bin/activate
 
 # Windows
 python -m venv venv
-venv\Scripts\activate.bat
+venv\Scripts\activate
 ```
 
 ```bash
