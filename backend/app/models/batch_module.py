@@ -13,8 +13,10 @@ class BatchModule(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     batchId: Mapped[str] = mapped_column(String, ForeignKey("batches.id"), nullable=False)
     moduleId: Mapped[str] = mapped_column(String, ForeignKey("modules.id"), nullable=False)
+    trainerId: Mapped[str | None] = mapped_column(String, ForeignKey("trainers.id"), nullable=True)
     status: Mapped[str] = mapped_column(String, default="PENDING")
     completionPercent: Mapped[float] = mapped_column(Float, default=0)
 
     batch = relationship("Batch", back_populates="batchModules")
     module = relationship("Module", back_populates="batchModules")
+    trainer = relationship("Trainer")

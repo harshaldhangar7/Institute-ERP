@@ -182,11 +182,10 @@ async def create_lecture(
     module_id = body.get("moduleId")
     date_str = body.get("date")
     start_time = body.get("startTime")
-    end_time = body.get("endTime")
     topics = body.get("topics")
 
-    if not batch_id or not module_id or not date_str or not start_time or not end_time:
-        return error_response("batchId, moduleId, date, startTime, and endTime are required", 400)
+    if not batch_id or not module_id or not date_str or not start_time:
+        return error_response("batchId, moduleId, date, and startTime are required", 400)
 
     lecture = Lecture(
         batchId=batch_id,
@@ -194,7 +193,7 @@ async def create_lecture(
         trainerId=trainer.id,
         date=datetime.fromisoformat(date_str) if isinstance(date_str, str) else date_str,
         startTime=start_time,
-        endTime=end_time,
+        endTime="",
         topics=topics,
     )
     db.add(lecture)
@@ -227,20 +226,28 @@ async def end_lecture(
 
     # Calculate duration from startTime to now
     now = datetime.now(timezone.utc)
+    end_time_str = now.strftime("%H:%M")
     try:
         start_parts = lecture.startTime.split(":")
         start_hour = int(start_parts[0])
         start_min = int(start_parts[1])
-        duration_minutes = (now.hour * 60 + now.minute) - (start_hour * 60 + start_min)
+        end_parts = end_time_str.split(":")
+        end_hour = int(end_parts[0])
+        end_min = int(end_parts[1])
+        duration_minutes = (end_hour * 60 + end_min) - (start_hour * 60 + start_min)
         if duration_minutes < 0:
             duration_minutes = 0
     except (ValueError, IndexError):
         duration_minutes = 0
 
+    lecture.endTime = end_time_str
     lecture.duration = duration_minutes
-    lecture.endTime = now.strftime("%H:%M")
     db.commit()
     db.refresh(lecture)
+
+    hours = duration_minutes // 60
+    minutes = duration_minutes % 60
+    duration_display = f"{hours}h {minutes}m" if hours > 0 else f"{minutes}m"
 
     return success_response(data={
         "id": lecture.id,
@@ -251,8 +258,9 @@ async def end_lecture(
         "startTime": lecture.startTime,
         "endTime": lecture.endTime,
         "duration": lecture.duration,
+        "durationDisplay": duration_display,
         "topics": lecture.topics,
-    }, message="Lecture ended successfully")
+    }, message=f"Lecture ended. Duration: {duration_display}")
 
 
 @router.get("/lectures")

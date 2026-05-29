@@ -109,6 +109,11 @@ def serialize_batch(batch: Batch) -> dict:
                 "name": bm.module.name,
                 "status": bm.status,
                 "completionPercent": bm.completionPercent,
+                "trainerId": bm.trainerId,
+                "trainer": {
+                    "id": bm.trainer.id,
+                    "name": bm.trainer.user.name,
+                } if bm.trainer and bm.trainer.user else None,
             }
             for bm in (batch.batchModules or [])
             if bm.module
@@ -455,6 +460,7 @@ async def get_batches(page: int = 1, limit: int = 10, db: Session = Depends(get_
     total = db.query(Batch).count()
     batches = db.query(Batch).options(
         selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.batchModules).joinedload(BatchModule.trainer).joinedload(Trainer.user),
         selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
         selectinload(Batch.students),
     ).offset(offset).limit(limit).all()
@@ -484,13 +490,26 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
     db.add(batch)
     db.flush()
 
-    # Assign modules if provided
+    # Assign modules if provided (supports both simple moduleIds and detailed modules array)
+    modules_data = body.get("modules", [])
     module_ids = body.get("moduleIds", [])
-    for module_id in module_ids:
-        module = db.query(Module).filter(Module.id == module_id).first()
-        if module:
-            bm = BatchModule(batchId=batch.id, moduleId=module_id)
-            db.add(bm)
+
+    if modules_data:
+        # New format: [{moduleId, trainerId}, ...]
+        for mod in modules_data:
+            mod_id = mod.get("moduleId") if isinstance(mod, dict) else mod
+            mod_trainer_id = mod.get("trainerId") if isinstance(mod, dict) else None
+            module = db.query(Module).filter(Module.id == mod_id).first()
+            if module:
+                bm = BatchModule(batchId=batch.id, moduleId=mod_id, trainerId=mod_trainer_id)
+                db.add(bm)
+    elif module_ids:
+        # Legacy format: simple list of module IDs
+        for module_id in module_ids:
+            module = db.query(Module).filter(Module.id == module_id).first()
+            if module:
+                bm = BatchModule(batchId=batch.id, moduleId=module_id)
+                db.add(bm)
 
     # Assign trainer if provided
     trainer_id = body.get("trainerId")
@@ -506,6 +525,7 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
     # Re-query with eager loading for proper serialization
     batch = db.query(Batch).options(
         selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.batchModules).joinedload(BatchModule.trainer).joinedload(Trainer.user),
         selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
         selectinload(Batch.students),
     ).filter(Batch.id == batch.id).first()
@@ -534,7 +554,18 @@ async def update_batch(batch_id: str, request: Request, db: Session = Depends(ge
         batch.isActive = body["isActive"]
 
     # Update modules if provided — replace existing assignments
-    if "moduleIds" in body:
+    if "modules" in body:
+        # New format: [{moduleId, trainerId}, ...]
+        db.query(BatchModule).filter(BatchModule.batchId == batch_id).delete()
+        for mod in body["modules"]:
+            mod_id = mod.get("moduleId") if isinstance(mod, dict) else mod
+            mod_trainer_id = mod.get("trainerId") if isinstance(mod, dict) else None
+            module = db.query(Module).filter(Module.id == mod_id).first()
+            if module:
+                bm = BatchModule(batchId=batch_id, moduleId=mod_id, trainerId=mod_trainer_id)
+                db.add(bm)
+    elif "moduleIds" in body:
+        # Legacy format: simple list of module IDs
         db.query(BatchModule).filter(BatchModule.batchId == batch_id).delete()
         for module_id in body["moduleIds"]:
             module = db.query(Module).filter(Module.id == module_id).first()
@@ -556,6 +587,7 @@ async def update_batch(batch_id: str, request: Request, db: Session = Depends(ge
     # Re-query with eager loading for proper serialization
     batch = db.query(Batch).options(
         selectinload(Batch.batchModules).joinedload(BatchModule.module),
+        selectinload(Batch.batchModules).joinedload(BatchModule.trainer).joinedload(Trainer.user),
         selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
         selectinload(Batch.students),
     ).filter(Batch.id == batch_id).first()

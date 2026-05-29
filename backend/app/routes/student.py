@@ -35,7 +35,7 @@ async def dashboard(
         return error_response("Student profile not found", 404)
 
     batch_info = None
-    trainer_name = None
+    trainers_list = []
     module_progress = []
 
     if student.batchId:
@@ -49,21 +49,32 @@ async def dashboard(
                 "isActive": batch.isActive,
             }
 
-        # Get trainer name
-        trainer_batch = db.query(TrainerBatch).filter(TrainerBatch.batchId == student.batchId).first()
-        if trainer_batch:
-            trainer = db.query(Trainer).filter(Trainer.id == trainer_batch.trainerId).first()
+        # Get all trainers assigned to this batch
+        trainer_batches = db.query(TrainerBatch).filter(TrainerBatch.batchId == student.batchId).all()
+        for tb in trainer_batches:
+            trainer = db.query(Trainer).filter(Trainer.id == tb.trainerId).first()
             if trainer and trainer.user:
-                trainer_name = trainer.user.name
+                trainers_list.append({
+                    "id": trainer.id,
+                    "name": trainer.user.name,
+                    "specialization": trainer.specialization,
+                })
 
-        # Module progress
+        # Module progress with trainer info
         batch_modules = db.query(BatchModule).filter(BatchModule.batchId == student.batchId).all()
         for bm in batch_modules:
+            trainer_info = None
+            if bm.trainerId and bm.trainer and bm.trainer.user:
+                trainer_info = {
+                    "id": bm.trainer.id,
+                    "name": bm.trainer.user.name,
+                }
             module_progress.append({
                 "moduleId": bm.moduleId,
                 "name": bm.module.name if bm.module else None,
                 "status": bm.status,
                 "progress": bm.completionPercent,
+                "trainer": trainer_info,
             })
 
     # Attendance percentage
@@ -76,9 +87,9 @@ async def dashboard(
     ).count()
     attendance_pct = (present_count / total_lectures * 100) if total_lectures > 0 else 0
 
-    # Add trainer name to batch_info
-    if batch_info and trainer_name:
-        batch_info["trainer"] = trainer_name
+    # Add trainers to batch_info
+    if batch_info:
+        batch_info["trainers"] = trainers_list
 
     return success_response(data={
         "batch": batch_info,
