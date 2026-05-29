@@ -7,10 +7,14 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
+from app.database import run_migrations
 from app.dependencies import AuthException, authenticate
 from app.utils.response import success_response, error_response
 
 logger = logging.getLogger(__name__)
+
+# Run database migrations
+run_migrations()
 
 # Import models to ensure they are registered with Base
 import app.models  # noqa: F401
