@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Spinner } from '@/components/common/Spinner';
 import { Role } from '@/types';
 
 interface ProtectedRouteProps {
@@ -10,16 +9,14 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { token, user } = useAuth();
 
-  if (loading) {
-    return <div className="flex items-center justify-center min-h-screen"><Spinner size="lg" /></div>;
-  }
-
-  if (!isAuthenticated) {
+  // No token at all — go to login
+  if (!token) {
     return <Navigate to="/login" replace />;
   }
 
+  // Wrong role
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/login" replace />;
   }
