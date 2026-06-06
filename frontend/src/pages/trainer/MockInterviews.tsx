@@ -15,8 +15,8 @@ export default function TrainerMockInterviews() {
   const fetchInterviews = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/mock-interviews');
-      setInterviews(res.data.data?.interviews || res.data.data || []);
+      const res = await api.get('/mock-interviews/all');
+      setInterviews(res.data.data || []);
     } catch {
       setInterviews([]);
     } finally {
@@ -37,13 +37,24 @@ export default function TrainerMockInterviews() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!form.studentId) { toast.error('Please select a student'); return; }
+
+    const comm = Number(form.communication);
+    const tech = Number(form.technical);
+    const conf = Number(form.confidence);
+
+    if ([comm, tech, conf].some(v => v < 1 || v > 10)) {
+      toast.error('All scores must be between 1 and 10');
+      return;
+    }
+
     try {
-      await api.post('/mock-interviews', {
+      await api.post('/mock-interviews/create', {
         studentId: form.studentId,
         date: form.date || new Date().toISOString().split('T')[0],
-        communication: Number(form.communication),
-        technical: Number(form.technical),
-        confidence: Number(form.confidence),
+        communication: comm,
+        technical: tech,
+        confidence: conf,
         feedback: form.feedback,
       });
       toast.success('Interview recorded');
@@ -56,10 +67,12 @@ export default function TrainerMockInterviews() {
 
   const columns = [
     { key: 'student', header: 'Student', render: (item: any) => item.student?.user?.name || '-' },
-    { key: 'communication', header: 'Communication', render: (item: any) => item.communication || 0 },
-    { key: 'technical', header: 'Technical', render: (item: any) => item.technical || 0 },
-    { key: 'confidence', header: 'Confidence', render: (item: any) => item.confidence || 0 },
-    { key: 'date', header: 'Date', render: (item: any) => item.date?.split('T')[0] || item.createdAt?.split('T')[0] || '-' },
+    { key: 'date', header: 'Date', render: (item: any) => item.date?.split('T')[0] || '-' },
+    { key: 'communication', header: 'Communication', render: (item: any) => `${item.communication ?? '-'}/10` },
+    { key: 'technical', header: 'Technical', render: (item: any) => `${item.technical ?? '-'}/10` },
+    { key: 'confidence', header: 'Confidence', render: (item: any) => `${item.confidence ?? '-'}/10` },
+    { key: 'overall', header: 'Overall', render: (item: any) => item.overallScore ? `${item.overallScore.toFixed(1)}/10` : '-' },
+    { key: 'feedback', header: 'Feedback', render: (item: any) => item.feedback ? item.feedback.slice(0, 40) + (item.feedback.length > 40 ? '…' : '') : '-' },
   ];
 
   return (
