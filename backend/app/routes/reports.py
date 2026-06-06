@@ -20,7 +20,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/reports",
     tags=["reports"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["ADMIN", "TRAINER"]))],
+    dependencies=[Depends(role_guard(["ADMIN", "TRAINER"]))],
 )
 
 

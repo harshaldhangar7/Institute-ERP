@@ -14,7 +14,7 @@ from app.utils.upload import save_upload_file
 router = APIRouter(
     prefix="/api/assignments",
     tags=["assignments"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["TRAINER", "STUDENT"]))],
+    dependencies=[Depends(role_guard(["TRAINER", "STUDENT"]))],
 )
 
 

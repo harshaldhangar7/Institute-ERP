@@ -5,12 +5,14 @@ from app.database import get_db
 from app.dependencies import authenticate, role_guard
 from app.models.marks import Marks
 from app.models.student import Student
+from app.models.trainer import Trainer
+from app.models.trainer_batch import TrainerBatch
 from app.utils.response import error_response, success_response
 
 router = APIRouter(
     prefix="/api/evaluation",
     tags=["evaluation"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["TRAINER", "ADMIN"]))],
+    dependencies=[Depends(role_guard(["TRAINER", "ADMIN"]))],
 )
 
 
@@ -57,6 +59,32 @@ async def create_marks(
 
     if not student_id or not module_id or not mark_type or score is None or max_score is None:
         return error_response("studentId, moduleId, type, score, and maxScore are required", 400)
+
+    # BUSINESS RULE: Score cannot exceed maxScore
+    if score < 0 or max_score <= 0:
+        return error_response("Score must be >= 0 and maxScore must be > 0", 400)
+    if score > max_score:
+        return error_response("Score cannot exceed maxScore", 400)
+
+    # BUSINESS RULE: Trainer can only grade students in their assigned batches
+    if current_user["role"] == "TRAINER":
+        trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+        if not trainer:
+            return error_response("Trainer profile not found", 404)
+
+        student = db.query(Student).filter(Student.id == student_id).first()
+        if not student:
+            return error_response("Student not found", 404)
+
+        if not student.batchId:
+            return error_response("Student is not assigned to any batch", 400)
+
+        trainer_batch = db.query(TrainerBatch).filter(
+            TrainerBatch.trainerId == trainer.id,
+            TrainerBatch.batchId == student.batchId,
+        ).first()
+        if not trainer_batch:
+            return error_response("You are not assigned to this student's batch", 403)
 
     marks = Marks(
         studentId=student_id,

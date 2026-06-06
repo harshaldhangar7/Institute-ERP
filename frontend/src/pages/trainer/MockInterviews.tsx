@@ -9,7 +9,7 @@ export default function TrainerMockInterviews() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({
-    studentId: '', communication: '', technical: '', confidence: '', feedback: '',
+    studentId: '', date: '', communication: '', technical: '', confidence: '', feedback: '',
   });
 
   const fetchInterviews = async () => {
@@ -40,6 +40,7 @@ export default function TrainerMockInterviews() {
     try {
       await api.post('/mock-interviews', {
         studentId: form.studentId,
+        date: form.date || new Date().toISOString().split('T')[0],
         communication: Number(form.communication),
         technical: Number(form.technical),
         confidence: Number(form.confidence),
@@ -65,7 +66,7 @@ export default function TrainerMockInterviews() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Mock Interviews</h1>
-        <Button onClick={() => { setForm({ studentId: '', communication: '', technical: '', confidence: '', feedback: '' }); setModalOpen(true); }}>
+        <Button onClick={() => { setForm({ studentId: '', date: new Date().toISOString().split('T')[0], communication: '', technical: '', confidence: '', feedback: '' }); setModalOpen(true); }}>
           New Interview
         </Button>
       </div>
@@ -75,6 +76,7 @@ export default function TrainerMockInterviews() {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title="Record Mock Interview">
         <form onSubmit={handleSubmit} className="space-y-4">
           <Select label="Student" value={form.studentId} onChange={(e) => setForm({ ...form, studentId: e.target.value })} options={students.map((s: any) => ({ value: s.id, label: s.user?.name || 'Student' }))} />
+          <Input label="Date" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} required />
           <Input label="Communication (1-10)" type="number" value={form.communication} onChange={(e) => setForm({ ...form, communication: e.target.value })} required />
           <Input label="Technical (1-10)" type="number" value={form.technical} onChange={(e) => setForm({ ...form, technical: e.target.value })} required />
           <Input label="Confidence (1-10)" type="number" value={form.confidence} onChange={(e) => setForm({ ...form, confidence: e.target.value })} required />

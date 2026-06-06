@@ -21,7 +21,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/student",
     tags=["student"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["STUDENT"]))],
+    dependencies=[Depends(role_guard(["STUDENT"]))],
 )
 
 

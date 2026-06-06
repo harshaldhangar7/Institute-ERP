@@ -12,6 +12,8 @@ from app.models.batch import Batch
 from app.models.batch_module import BatchModule
 from app.models.counsellor import Counsellor
 from app.models.counsellor_student import CounsellorStudent
+from app.models.course import Course
+from app.models.course_module import CourseModule
 from app.models.fee import Fee
 from app.models.marks import Marks
 from app.models.mock_interview import MockInterview
@@ -26,7 +28,7 @@ from app.utils.response import error_response, paginated_response, success_respo
 router = APIRouter(
     prefix="/api/admin",
     tags=["admin"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["ADMIN"]))],
+    dependencies=[Depends(role_guard(["ADMIN"]))],
 )
 
 
@@ -98,6 +100,11 @@ def serialize_batch(batch: Batch) -> dict:
     return {
         "id": batch.id,
         "name": batch.name,
+        "courseId": batch.courseId,
+        "course": {
+            "id": batch.course.id,
+            "name": batch.course.name,
+        } if batch.course else None,
         "startDate": batch.startDate.isoformat() if batch.startDate else None,
         "endDate": batch.endDate.isoformat() if batch.endDate else None,
         "isActive": batch.isActive,
@@ -459,6 +466,7 @@ async def get_batches(page: int = 1, limit: int = 10, db: Session = Depends(get_
     offset = (page - 1) * limit
     total = db.query(Batch).count()
     batches = db.query(Batch).options(
+        joinedload(Batch.course),
         selectinload(Batch.batchModules).joinedload(BatchModule.module),
         selectinload(Batch.batchModules).joinedload(BatchModule.trainer).joinedload(Trainer.user),
         selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
@@ -477,12 +485,14 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
 
     name = body.get("name")
     start_date = body.get("startDate")
+    course_id = body.get("courseId")
 
     if not name or not start_date:
         return error_response("Name and start date are required", 400)
 
     batch = Batch(
         name=name,
+        courseId=course_id,
         startDate=datetime.fromisoformat(start_date) if isinstance(start_date, str) else start_date,
         endDate=datetime.fromisoformat(body["endDate"]) if body.get("endDate") else None,
         isActive=body.get("isActive", True),
@@ -510,6 +520,12 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
             if module:
                 bm = BatchModule(batchId=batch.id, moduleId=module_id)
                 db.add(bm)
+    elif course_id:
+        # Auto-populate modules from course
+        course_modules = db.query(CourseModule).filter(CourseModule.courseId == course_id).order_by(CourseModule.orderIndex).all()
+        for cm in course_modules:
+            bm = BatchModule(batchId=batch.id, moduleId=cm.moduleId)
+            db.add(bm)
 
     # Assign trainer if provided
     trainer_id = body.get("trainerId")
@@ -524,6 +540,7 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
 
     # Re-query with eager loading for proper serialization
     batch = db.query(Batch).options(
+        joinedload(Batch.course),
         selectinload(Batch.batchModules).joinedload(BatchModule.module),
         selectinload(Batch.batchModules).joinedload(BatchModule.trainer).joinedload(Trainer.user),
         selectinload(Batch.trainerBatches).joinedload(TrainerBatch.trainer).joinedload(Trainer.user),
@@ -771,3 +788,157 @@ async def assign_module_batch(request: Request, db: Session = Depends(get_db)):
     db.commit()
 
     return success_response(message="Module assigned to batch successfully", status_code=201)
+
+
+# Courses CRUD
+@router.get("/courses")
+async def get_courses(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    offset = (page - 1) * limit
+    total = db.query(Course).count()
+    courses = db.query(Course).options(
+        selectinload(Course.courseModules).joinedload(CourseModule.module),
+        selectinload(Course.batches),
+    ).offset(offset).limit(limit).all()
+
+    data = []
+    for course in courses:
+        modules = sorted(course.courseModules or [], key=lambda cm: cm.orderIndex)
+        data.append({
+            "id": course.id,
+            "name": course.name,
+            "description": course.description,
+            "duration": course.duration,
+            "modules": [
+                {
+                    "id": cm.module.id,
+                    "name": cm.module.name,
+                    "duration": cm.module.duration,
+                    "orderIndex": cm.orderIndex,
+                }
+                for cm in modules if cm.module
+            ],
+            "batchCount": len(course.batches) if course.batches else 0,
+            "batches": [
+                {"id": b.id, "name": b.name, "isActive": b.isActive}
+                for b in (course.batches or [])
+            ],
+        })
+
+    return paginated_response(data, total, page, limit)
+
+
+@router.post("/courses")
+async def create_course(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        return error_response("Invalid request body", 400)
+
+    name = body.get("name")
+    if not name:
+        return error_response("Course name is required", 400)
+
+    course = Course(
+        name=name,
+        description=body.get("description"),
+        duration=body.get("duration"),
+    )
+    db.add(course)
+    db.flush()
+
+    # Add modules to course if provided
+    module_ids = body.get("moduleIds", [])
+    for idx, module_id in enumerate(module_ids):
+        module = db.query(Module).filter(Module.id == module_id).first()
+        if module:
+            cm = CourseModule(courseId=course.id, moduleId=module_id, orderIndex=idx)
+            db.add(cm)
+
+    db.commit()
+    db.refresh(course)
+
+    # Re-query with relationships
+    course = db.query(Course).options(
+        selectinload(Course.courseModules).joinedload(CourseModule.module),
+        selectinload(Course.batches),
+    ).filter(Course.id == course.id).first()
+
+    modules = sorted(course.courseModules or [], key=lambda cm: cm.orderIndex)
+    return success_response(data={
+        "id": course.id,
+        "name": course.name,
+        "description": course.description,
+        "duration": course.duration,
+        "modules": [
+            {"id": cm.module.id, "name": cm.module.name, "duration": cm.module.duration, "orderIndex": cm.orderIndex}
+            for cm in modules if cm.module
+        ],
+        "batchCount": 0,
+        "batches": [],
+    }, message="Course created successfully", status_code=201)
+
+
+@router.put("/courses/{course_id}")
+async def update_course(course_id: str, request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        return error_response("Invalid request body", 400)
+
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        return error_response("Course not found", 404)
+
+    if "name" in body:
+        course.name = body["name"]
+    if "description" in body:
+        course.description = body["description"]
+    if "duration" in body:
+        course.duration = body["duration"]
+
+    # Update modules if provided
+    if "moduleIds" in body:
+        db.query(CourseModule).filter(CourseModule.courseId == course_id).delete()
+        for idx, module_id in enumerate(body["moduleIds"]):
+            module = db.query(Module).filter(Module.id == module_id).first()
+            if module:
+                cm = CourseModule(courseId=course_id, moduleId=module_id, orderIndex=idx)
+                db.add(cm)
+
+    db.commit()
+
+    # Re-query
+    course = db.query(Course).options(
+        selectinload(Course.courseModules).joinedload(CourseModule.module),
+        selectinload(Course.batches),
+    ).filter(Course.id == course_id).first()
+
+    modules = sorted(course.courseModules or [], key=lambda cm: cm.orderIndex)
+    return success_response(data={
+        "id": course.id,
+        "name": course.name,
+        "description": course.description,
+        "duration": course.duration,
+        "modules": [
+            {"id": cm.module.id, "name": cm.module.name, "duration": cm.module.duration, "orderIndex": cm.orderIndex}
+            for cm in modules if cm.module
+        ],
+        "batchCount": len(course.batches) if course.batches else 0,
+        "batches": [{"id": b.id, "name": b.name, "isActive": b.isActive} for b in (course.batches or [])],
+    }, message="Course updated successfully")
+
+
+@router.delete("/courses/{course_id}")
+async def delete_course(course_id: str, db: Session = Depends(get_db)):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        return error_response("Course not found", 404)
+
+    # Remove course-module links
+    db.query(CourseModule).filter(CourseModule.courseId == course_id).delete()
+    # Unlink batches (set courseId to null)
+    db.query(Batch).filter(Batch.courseId == course_id).update({"courseId": None})
+    db.query(Course).filter(Course.id == course_id).delete()
+    db.commit()
+
+    return success_response(message="Course deleted successfully")

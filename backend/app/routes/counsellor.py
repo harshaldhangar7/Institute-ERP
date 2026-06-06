@@ -19,7 +19,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/counsellor",
     tags=["counsellor"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["COUNSELLOR"]))],
+    dependencies=[Depends(role_guard(["COUNSELLOR"]))],
 )
 
 
@@ -141,11 +141,23 @@ async def record_payment(
     if not cs:
         return error_response("Access denied. Student not assigned to you.", 403)
 
+    # BUSINESS RULE: Payment amount must be positive
+    if amount <= 0:
+        return error_response("Payment amount must be greater than 0", 400)
+
+    # BUSINESS RULE: Paid amount cannot exceed total fee
+    new_paid = fee.paidAmount + amount
+    if new_paid > fee.totalAmount:
+        return error_response(
+            f"Payment of {amount} would exceed total fee. Maximum payable: {fee.totalAmount - fee.paidAmount}",
+            400,
+        )
+
     payment = FeePayment(feeId=fee_id, amount=amount, method=method)
     db.add(payment)
 
     # Update fee totals
-    fee.paidAmount = fee.paidAmount + amount
+    fee.paidAmount = new_paid
     fee.pendingAmount = fee.totalAmount - fee.paidAmount
     if fee.pendingAmount <= 0:
         fee.pendingAmount = 0

@@ -15,6 +15,7 @@ class Module(Base):
     duration: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     batchModules = relationship("BatchModule", back_populates="module")
+    courseModules = relationship("CourseModule", back_populates="module")
     lectures = relationship("Lecture", back_populates="module")
     marks = relationship("Marks", back_populates="module")
     assignments = relationship("Assignment", back_populates="module")

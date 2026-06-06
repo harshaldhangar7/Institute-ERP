@@ -18,10 +18,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Only redirect if we're not already on the login page and not calling /auth/me (token verification)
-      const isAuthCheck = error.config?.url?.includes('/auth/me');
-      if (!isAuthCheck && window.location.pathname !== '/login') {
+    if (error.response?.status === 401 && window.location.pathname !== '/login') {
+      const message = (error.response?.data?.message || error.response?.data?.error || '').toLowerCase();
+      // Only auto-logout if the server explicitly says the token is invalid/expired
+      if (message.includes('invalid or expired token') || message.includes('no token provided')) {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         window.location.href = '/login';

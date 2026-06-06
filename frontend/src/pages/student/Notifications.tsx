@@ -10,7 +10,7 @@ export default function StudentNotifications() {
   const fetchNotifications = async () => {
     setLoading(true);
     try {
-      const res = await api.get('/notifications');
+      const res = await api.get('/student/notifications');
       setNotifications(res.data.data?.notifications || res.data.data || []);
     } catch {
       setNotifications([]);
@@ -41,17 +41,17 @@ export default function StudentNotifications() {
       ) : (
         <div className="space-y-3">
           {notifications.map((n: any) => (
-            <Card key={n.id} className={n.read ? 'opacity-60' : ''}>
+            <Card key={n.id} className={n.isRead ? 'opacity-60' : ''}>
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-medium text-sm">{n.title}</h3>
-                    {!n.read && <Badge variant="info">New</Badge>}
+                    {!n.isRead && <Badge variant="info">New</Badge>}
                   </div>
                   <p className="text-sm text-gray-600 mt-1">{n.message}</p>
                   <p className="text-xs text-gray-400 mt-1">{n.createdAt?.split('T')[0] || ''}</p>
                 </div>
-                {!n.read && (
+                {!n.isRead && (
                   <Button size="sm" variant="ghost" onClick={() => markAsRead(n.id)}>Mark Read</Button>
                 )}
               </div>

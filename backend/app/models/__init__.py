@@ -4,6 +4,8 @@ from app.models.trainer import Trainer
 from app.models.counsellor import Counsellor
 from app.models.batch import Batch
 from app.models.module import Module
+from app.models.course import Course
+from app.models.course_module import CourseModule
 from app.models.batch_module import BatchModule
 from app.models.trainer_batch import TrainerBatch
 from app.models.counsellor_student import CounsellorStudent
@@ -24,6 +26,8 @@ __all__ = [
     "Counsellor",
     "Batch",
     "Module",
+    "Course",
+    "CourseModule",
     "BatchModule",
     "TrainerBatch",
     "CounsellorStudent",

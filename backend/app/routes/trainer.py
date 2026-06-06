@@ -20,7 +20,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/trainer",
     tags=["trainer"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["TRAINER"]))],
+    dependencies=[Depends(role_guard(["TRAINER"]))],
 )
 
 
@@ -90,6 +90,61 @@ async def get_batches(
             "isActive": b.isActive,
             "status": "ACTIVE" if b.isActive else "COMPLETED",
             "studentCount": student_count,
+        })
+
+    return success_response(data=data)
+
+
+@router.get("/students")
+async def get_all_students(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Get all students across all batches assigned to this trainer."""
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    trainer_batches = db.query(TrainerBatch).filter(TrainerBatch.trainerId == trainer.id).all()
+    batch_ids = [tb.batchId for tb in trainer_batches]
+
+    if not batch_ids:
+        return success_response(data=[])
+
+    students = db.query(Student).filter(Student.batchId.in_(batch_ids)).all()
+    data = []
+    for student in students:
+        # Calculate attendance percentage
+        total_lectures = db.query(Lecture).filter(Lecture.batchId == student.batchId).count()
+        present_count = db.query(Attendance).filter(
+            Attendance.studentId == student.id,
+            Attendance.status == "PRESENT",
+        ).count()
+        attendance_pct = (present_count / total_lectures * 100) if total_lectures > 0 else 0
+
+        # Calculate average marks
+        avg_marks = db.query(func.avg(Marks.score)).filter(
+            Marks.studentId == student.id
+        ).scalar() or 0
+
+        data.append({
+            "id": student.id,
+            "userId": student.userId,
+            "batchId": student.batchId,
+            "mode": student.mode,
+            "enrollmentDate": student.enrollmentDate.isoformat() if student.enrollmentDate else None,
+            "user": {
+                "id": student.user.id,
+                "name": student.user.name,
+                "email": student.user.email,
+                "phone": student.user.phone,
+            } if student.user else None,
+            "batch": {
+                "id": student.batch.id,
+                "name": student.batch.name,
+            } if student.batch else None,
+            "attendancePercentage": round(attendance_pct, 2),
+            "avgMarks": round(float(avg_marks), 2),
         })
 
     return success_response(data=data)
@@ -187,6 +242,22 @@ async def create_lecture(
     if not batch_id or not module_id or not date_str or not start_time:
         return error_response("batchId, moduleId, date, and startTime are required", 400)
 
+    # BUSINESS RULE: Trainer must be assigned to this batch
+    trainer_batch = db.query(TrainerBatch).filter(
+        TrainerBatch.trainerId == trainer.id,
+        TrainerBatch.batchId == batch_id,
+    ).first()
+    if not trainer_batch:
+        return error_response("You are not assigned to this batch", 403)
+
+    # BUSINESS RULE: Module must be assigned to this batch
+    batch_module = db.query(BatchModule).filter(
+        BatchModule.batchId == batch_id,
+        BatchModule.moduleId == module_id,
+    ).first()
+    if not batch_module:
+        return error_response("This module is not assigned to this batch", 400)
+
     lecture = Lecture(
         batchId=batch_id,
         moduleId=module_id,
@@ -225,7 +296,7 @@ async def end_lecture(
         return error_response("Lecture not found", 404)
 
     # Calculate duration from startTime to now
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
     end_time_str = now.strftime("%H:%M")
     try:
         start_parts = lecture.startTime.split(":")
@@ -236,7 +307,7 @@ async def end_lecture(
         end_min = int(end_parts[1])
         duration_minutes = (end_hour * 60 + end_min) - (start_hour * 60 + start_min)
         if duration_minutes < 0:
-            duration_minutes = 0
+            duration_minutes += 24 * 60  # handle midnight crossing
     except (ValueError, IndexError):
         duration_minutes = 0
 

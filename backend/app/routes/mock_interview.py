@@ -13,7 +13,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/mock-interviews",
     tags=["mock-interviews"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["TRAINER"]))],
+    dependencies=[Depends(authenticate)],
 )
 
 
@@ -43,6 +43,21 @@ def serialize_interview(mi: MockInterview) -> dict:
             } if mi.trainer.user else None,
         } if mi.trainer else None,
     }
+
+
+@router.get("/")
+async def get_my_interviews(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Get all mock interviews conducted by this trainer."""
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    interviews = db.query(MockInterview).filter(MockInterview.trainerId == trainer.id).order_by(MockInterview.date.desc()).all()
+    data = [serialize_interview(mi) for mi in interviews]
+    return success_response(data=data)
 
 
 @router.post("/")

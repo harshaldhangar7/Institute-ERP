@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import api from '@/services/api';
 import { User, Role } from '@/types';
 
@@ -23,24 +23,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    // If we already have token + user in localStorage, don't show loading
+    const hasToken = !!localStorage.getItem('token');
+    const hasUser = !!localStorage.getItem('user');
+    return hasToken && !hasUser;
+  });
+  const verified = useRef(false);
 
   const isAuthenticated = !!token && !!user;
 
-  // Verify token on mount by calling /auth/me
+  // Verify token once on initial mount only
   useEffect(() => {
+    if (verified.current) return;
+    verified.current = true;
+
     const verifyToken = async () => {
       if (!token) {
         setLoading(false);
         return;
       }
+      // If we already have user data from localStorage, don't block rendering
+      if (user) {
+        setLoading(false);
+        // Verify in background without blocking
+        try {
+          const response = await api.get('/auth/me');
+          const userData = response.data.data;
+          setUser(userData);
+          localStorage.setItem('user', JSON.stringify(userData));
+        } catch {
+          // Only clear if it's definitely a token issue (not a network error)
+          // Don't auto-logout on background verification failure
+        }
+        return;
+      }
+      // No user in localStorage but have token — must verify
       try {
         const response = await api.get('/auth/me');
         const userData = response.data.data;
         setUser(userData);
         localStorage.setItem('user', JSON.stringify(userData));
       } catch {
-        // Token is invalid — clear auth state
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         setToken(null);

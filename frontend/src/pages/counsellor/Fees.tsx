@@ -39,7 +39,7 @@ export default function CounsellorFees() {
 
   const columns = [
     { key: 'student', header: 'Student', render: (item: any) => item.student?.user?.name || '-' },
-    { key: 'amount', header: 'Amount', render: (item: any) => `$${item.amount || 0}` },
+    { key: 'amount', header: 'Amount', render: (item: any) => `₹${(item.totalAmount || item.amount || 0).toLocaleString()}` },
     { key: 'dueDate', header: 'Due Date', render: (item: any) => item.dueDate?.split('T')[0] || '-' },
     {
       key: 'status',
