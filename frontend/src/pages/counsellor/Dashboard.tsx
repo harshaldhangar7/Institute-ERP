@@ -31,7 +31,7 @@ export default function CounsellorDashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard title="Active Students" value={stats?.activeStudents || 0} icon={<UserGroupIcon className="h-8 w-8" />} />
-        <StatCard title="Pending Fees" value={`$${stats?.pendingFees || 0}`} icon={<CurrencyDollarIcon className="h-8 w-8" />} />
+        <StatCard title="Pending Fees" value={`₹${(stats?.pendingFees || 0).toLocaleString()}`} icon={<CurrencyDollarIcon className="h-8 w-8" />} />
         <StatCard title="At-Risk Students" value={stats?.atRiskStudents || 0} icon={<ExclamationTriangleIcon className="h-8 w-8" />} changeType="negative" />
       </div>
 

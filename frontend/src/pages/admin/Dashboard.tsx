@@ -28,7 +28,7 @@ export default function AdminDashboard() {
         const response = await api.get('/admin/dashboard');
         setStats(response.data.data);
       } catch {
-        setStats({ totalStudents: 0, totalTrainers: 0, activeBatches: 0, totalRevenue: 0 });
+        setStats(null);
       } finally {
         setLoading(false);
       }
@@ -38,23 +38,28 @@ export default function AdminDashboard() {
 
   if (loading) return <Spinner />;
 
+  const attendanceOverview = stats?.attendanceOverview || { present: 0, absent: 0, late: 0 };
+  const totalAttendance = attendanceOverview.present + attendanceOverview.absent + attendanceOverview.late;
+
+  const feeStatus = stats?.feeCollectionStatus || { totalAmount: 0, paidAmount: 0, pendingAmount: 0 };
+
   const barData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+    labels: ['Present', 'Absent', 'Late'],
     datasets: [
       {
-        label: 'Attendance %',
-        data: [85, 88, 82, 90, 87, 92],
-        backgroundColor: 'rgba(79, 70, 229, 0.6)',
+        label: 'Attendance Records',
+        data: [attendanceOverview.present, attendanceOverview.absent, attendanceOverview.late],
+        backgroundColor: ['rgba(16, 185, 129, 0.7)', 'rgba(239, 68, 68, 0.7)', 'rgba(245, 158, 11, 0.7)'],
       },
     ],
   };
 
   const doughnutData = {
-    labels: ['Paid', 'Pending', 'Overdue'],
+    labels: ['Collected', 'Pending'],
     datasets: [
       {
-        data: [65, 25, 10],
-        backgroundColor: ['#10B981', '#F59E0B', '#EF4444'],
+        data: [feeStatus.paidAmount, feeStatus.pendingAmount],
+        backgroundColor: ['#10B981', '#F59E0B'],
       },
     ],
   };
@@ -80,18 +85,38 @@ export default function AdminDashboard() {
           icon={<CalendarIcon className="h-8 w-8" />}
         />
         <StatCard
-          title="Fee Collection"
-          value={`$${stats?.totalRevenue || 0}`}
+          title="Fee Collected"
+          value={`₹${feeStatus.paidAmount.toLocaleString()}`}
           icon={<CurrencyDollarIcon className="h-8 w-8" />}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card title="Attendance Overview">
-          <Bar data={barData} options={{ responsive: true, plugins: { legend: { position: 'top' } } }} />
+          {totalAttendance > 0 ? (
+            <Bar data={barData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
+          ) : (
+            <p className="text-gray-500 text-center py-8">No attendance data yet</p>
+          )}
         </Card>
         <Card title="Fee Collection Status">
-          <Doughnut data={doughnutData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
+          {feeStatus.totalAmount > 0 ? (
+            <>
+              <Doughnut data={doughnutData} options={{ responsive: true, plugins: { legend: { position: 'bottom' } } }} />
+              <div className="mt-4 grid grid-cols-2 gap-4 text-center text-sm">
+                <div>
+                  <p className="text-gray-500">Total Fees</p>
+                  <p className="font-semibold">₹{feeStatus.totalAmount.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-gray-500">Pending</p>
+                  <p className="font-semibold text-amber-600">₹{feeStatus.pendingAmount.toLocaleString()}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            <p className="text-gray-500 text-center py-8">No fee data yet</p>
+          )}
         </Card>
       </div>
     </div>

@@ -29,11 +29,12 @@ interface NavItem {
 const navItems: Record<Role, NavItem[]> = {
   ADMIN: [
     { name: 'Dashboard', path: '/admin/dashboard', icon: HomeIcon },
+    { name: 'Courses', path: '/admin/courses', icon: BookOpenIcon },
+    { name: 'Modules', path: '/admin/modules', icon: DocumentTextIcon },
+    { name: 'Batches', path: '/admin/batches', icon: CalendarIcon },
     { name: 'Students', path: '/admin/students', icon: UserGroupIcon },
     { name: 'Trainers', path: '/admin/trainers', icon: AcademicCapIcon },
     { name: 'Counsellors', path: '/admin/counsellors', icon: UserGroupIcon },
-    { name: 'Batches', path: '/admin/batches', icon: CalendarIcon },
-    { name: 'Modules', path: '/admin/modules', icon: BookOpenIcon },
   ],
   TRAINER: [
     { name: 'Dashboard', path: '/trainer/dashboard', icon: HomeIcon },

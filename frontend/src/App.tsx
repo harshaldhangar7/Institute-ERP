@@ -14,6 +14,7 @@ const AdminTrainers = lazy(() => import('@/pages/admin/Trainers'));
 const AdminCounsellors = lazy(() => import('@/pages/admin/Counsellors'));
 const AdminBatches = lazy(() => import('@/pages/admin/Batches'));
 const AdminModules = lazy(() => import('@/pages/admin/Modules'));
+const AdminCourses = lazy(() => import('@/pages/admin/Courses'));
 
 // Trainer
 const TrainerDashboard = lazy(() => import('@/pages/trainer/Dashboard'));
@@ -56,6 +57,7 @@ function App() {
         <Route path="/admin/counsellors" element={<ProtectedRoute allowedRoles={['ADMIN']}><Layout><AdminCounsellors /></Layout></ProtectedRoute>} />
         <Route path="/admin/batches" element={<ProtectedRoute allowedRoles={['ADMIN']}><Layout><AdminBatches /></Layout></ProtectedRoute>} />
         <Route path="/admin/modules" element={<ProtectedRoute allowedRoles={['ADMIN']}><Layout><AdminModules /></Layout></ProtectedRoute>} />
+        <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['ADMIN']}><Layout><AdminCourses /></Layout></ProtectedRoute>} />
 
         {/* Trainer Routes */}
         <Route path="/trainer/dashboard" element={<ProtectedRoute allowedRoles={['TRAINER']}><Layout><TrainerDashboard /></Layout></ProtectedRoute>} />

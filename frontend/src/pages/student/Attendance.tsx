@@ -36,7 +36,7 @@ export default function StudentAttendance() {
         async (decodedText) => {
           try {
             const data = JSON.parse(decodedText);
-            await api.post('/attendance/mark', { lectureId: data.lectureId, qrToken: data.token });
+            await api.post('/attendance/mark-qr', { lectureId: data.lectureId, token: data.token, timestamp: data.timestamp });
             toast.success('Attendance marked successfully!');
             scanner.stop();
             setScanning(false);

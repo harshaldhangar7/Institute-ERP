@@ -13,7 +13,7 @@ from app.utils.response import error_response, success_response
 router = APIRouter(
     prefix="/api/mock-interviews",
     tags=["mock-interviews"],
-    dependencies=[Depends(authenticate), Depends(role_guard(["TRAINER"]))],
+    dependencies=[Depends(authenticate)],
 )
 
 
@@ -45,7 +45,42 @@ def serialize_interview(mi: MockInterview) -> dict:
     }
 
 
-@router.post("/")
+# NOTE: More specific routes MUST come before /{student_id} to avoid conflicts
+@router.get("/batch/{batch_id}")
+async def get_batch_interviews(
+    batch_id: str,
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    students = db.query(Student).filter(Student.batchId == batch_id).all()
+    student_ids = [s.id for s in students]
+
+    interviews = db.query(MockInterview).filter(
+        MockInterview.studentId.in_(student_ids)
+    ).all() if student_ids else []
+
+    data = [serialize_interview(mi) for mi in interviews]
+    return success_response(data=data)
+
+
+@router.get("/all")
+async def get_my_interviews(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Get all mock interviews conducted by this trainer."""
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    interviews = db.query(MockInterview).filter(
+        MockInterview.trainerId == trainer.id
+    ).order_by(MockInterview.date.desc()).all()
+    data = [serialize_interview(mi) for mi in interviews]
+    return success_response(data=data)
+
+
+@router.post("/create")
 async def create_mock_interview(
     request: Request,
     current_user: dict = Depends(role_guard(["TRAINER"])),
@@ -70,6 +105,11 @@ async def create_mock_interview(
     if not trainer:
         return error_response("Trainer profile not found", 404)
 
+    # Verify student is in trainer's batch
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return error_response("Student not found", 404)
+
     # Calculate overall score as average of provided scores
     scores = [s for s in [communication, technical, confidence] if s is not None]
     overall_score = sum(scores) / len(scores) if scores else None
@@ -91,29 +131,12 @@ async def create_mock_interview(
     return success_response(data=serialize_interview(mi), message="Mock interview recorded", status_code=201)
 
 
-@router.get("/{student_id}")
+@router.get("/student/{student_id}")
 async def get_student_interviews(
     student_id: str,
     current_user: dict = Depends(role_guard(["TRAINER"])),
     db: Session = Depends(get_db),
 ):
     interviews = db.query(MockInterview).filter(MockInterview.studentId == student_id).all()
-    data = [serialize_interview(mi) for mi in interviews]
-    return success_response(data=data)
-
-
-@router.get("/batch/{batch_id}")
-async def get_batch_interviews(
-    batch_id: str,
-    current_user: dict = Depends(role_guard(["TRAINER"])),
-    db: Session = Depends(get_db),
-):
-    students = db.query(Student).filter(Student.batchId == batch_id).all()
-    student_ids = [s.id for s in students]
-
-    interviews = db.query(MockInterview).filter(
-        MockInterview.studentId.in_(student_ids)
-    ).all() if student_ids else []
-
     data = [serialize_interview(mi) for mi in interviews]
     return success_response(data=data)

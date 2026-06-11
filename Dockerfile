@@ -36,5 +36,5 @@ EXPOSE 5000
 
 WORKDIR /app/backend
 
-# Run seed and then start server
-CMD ["sh", "-c", "python seed.py && uvicorn app.main:app --host 0.0.0.0 --port 5000"]
+# Run server (seed only if DB doesn't exist)
+CMD ["sh", "-c", "python -c \"import os; os.path.exists('./dev.db') or __import__('subprocess').run(['python','seed.py'])\" && uvicorn app.main:app --host 0.0.0.0 --port 5000"]

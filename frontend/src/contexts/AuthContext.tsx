@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '@/services/api';
-import { User, Role } from '@/types';
+import { User } from '@/types';
 
 interface AuthContextType {
   token: string | null;
@@ -13,43 +13,33 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem('token'));
-  const [user, setUser] = useState<User | null>(() => {
-    const stored = localStorage.getItem('user');
-    try {
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-  const [loading, setLoading] = useState(true);
+// Read initial state synchronously from localStorage — no async at this point
+function getInitialToken(): string | null {
+  return localStorage.getItem('token');
+}
 
+function getInitialUser(): User | null {
+  try {
+    const stored = localStorage.getItem('user');
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [token] = useState<string | null>(getInitialToken);
+  const [user, setUser] = useState<User | null>(getInitialUser);
+  const [loading, setLoading] = useState(false); // Never block if we have data already
+
+  // isAuthenticated is based on what we have RIGHT NOW
   const isAuthenticated = !!token && !!user;
 
-  // Verify token on mount by calling /auth/me
-  useEffect(() => {
-    const verifyToken = async () => {
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-      try {
-        const response = await api.get('/auth/me');
-        const userData = response.data.data;
-        setUser(userData);
-        localStorage.setItem('user', JSON.stringify(userData));
-      } catch {
-        // Token is invalid — clear auth state
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-    verifyToken();
+  const logout = useCallback(() => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Hard reload to clear all state cleanly
+    window.location.href = '/login';
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
@@ -57,15 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { token: newToken, user: newUser } = response.data.data;
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setToken(null);
-    setUser(null);
+    // Hard reload after login to get clean state
+    window.location.href = `/${newUser.role.toLowerCase()}/dashboard`;
   }, []);
 
   return (

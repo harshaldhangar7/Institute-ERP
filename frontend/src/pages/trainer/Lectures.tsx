@@ -65,13 +65,22 @@ export default function TrainerLectures() {
     fetchModulesForBatch(batchId);
   };
 
-  // QR code refresh every 10 seconds, available for 5 minutes after ending lecture
+  // QR code refresh every 10 seconds using backend HMAC endpoint, available for 5 minutes after ending lecture
   useEffect(() => {
-    if (!showQr) return;
-    const generateQr = () => {
-      const timestamp = Date.now();
-      const value = JSON.stringify({ lectureId: activeLecture?.id, timestamp, token: Math.random().toString(36).substring(7) });
-      setQrValue(value);
+    if (!showQr || !activeLecture?.id) return;
+
+    const generateQr = async () => {
+      try {
+        const res = await api.post('/attendance/generate-qr', { lectureId: activeLecture.id });
+        const { lectureId, token, timestamp } = res.data.data;
+        const value = JSON.stringify({ lectureId, token, timestamp });
+        setQrValue(value);
+      } catch {
+        // Fallback if endpoint fails
+        const timestamp = String(Math.floor(Date.now() / 1000));
+        const value = JSON.stringify({ lectureId: activeLecture.id, timestamp, token: 'error' });
+        setQrValue(value);
+      }
     };
     generateQr();
     const refreshInterval = setInterval(generateQr, 10000);
@@ -86,6 +95,7 @@ export default function TrainerLectures() {
           setShowQr(false);
           setQrValue('');
           setActiveLecture(null);
+          fetchLectures(); // Refresh list to show updated duration
           return 0;
         }
         return prev - 1;
@@ -188,7 +198,7 @@ export default function TrainerLectures() {
             <div className="p-4 bg-white border-2 border-gray-200 rounded-lg">
               <QRCodeSVG value={qrValue} size={256} />
             </div>
-            <Button variant="secondary" onClick={() => { setShowQr(false); setQrValue(''); setActiveLecture(null); }}>
+            <Button variant="secondary" onClick={() => { setShowQr(false); setQrValue(''); setActiveLecture(null); fetchLectures(); }}>
               Dismiss
             </Button>
           </div>

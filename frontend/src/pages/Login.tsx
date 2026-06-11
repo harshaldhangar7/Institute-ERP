@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/common/Button';
 import { Input } from '@/components/common/Input';
+import api from '@/services/api';
 import toast from 'react-hot-toast';
 
 const roleRedirects: Record<string, string> = {
@@ -17,8 +16,6 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,16 +23,17 @@ export default function Login() {
     setLoading(true);
 
     try {
-      await login(email, password);
-      const user = JSON.parse(localStorage.getItem('user') || '{}');
-      const redirect = roleRedirects[user.role] || '/login';
+      const response = await api.post('/auth/login', { email, password });
+      const { token, user } = response.data.data;
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(user));
       toast.success('Login successful!');
-      navigate(redirect);
+      const redirect = roleRedirects[user.role] || '/login';
+      window.location.href = redirect;
     } catch (err: any) {
-      const message = err.response?.data?.message || 'Invalid credentials';
+      const message = err.response?.data?.message || err.response?.data?.error || 'Invalid credentials';
       setError(message);
       toast.error(message);
-    } finally {
       setLoading(false);
     }
   };
