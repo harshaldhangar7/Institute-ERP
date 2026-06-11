@@ -11,4 +11,6 @@ venv/
 backend/venv/
 *.egg-info/
 .pytest_cache/
+.agents\tasks
+.vscode
 
