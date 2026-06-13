@@ -2,6 +2,7 @@ from app.models.user import User
 from app.models.student import Student
 from app.models.trainer import Trainer
 from app.models.counsellor import Counsellor
+from app.models.course import Course
 from app.models.batch import Batch
 from app.models.module import Module
 from app.models.batch_module import BatchModule
@@ -22,6 +23,7 @@ __all__ = [
     "Student",
     "Trainer",
     "Counsellor",
+    "Course",
     "Batch",
     "Module",
     "BatchModule",

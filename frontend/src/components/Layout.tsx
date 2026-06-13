@@ -32,6 +32,7 @@ const navItems: Record<Role, NavItem[]> = {
     { name: 'Students', path: '/admin/students', icon: UserGroupIcon },
     { name: 'Trainers', path: '/admin/trainers', icon: AcademicCapIcon },
     { name: 'Counsellors', path: '/admin/counsellors', icon: UserGroupIcon },
+    { name: 'Courses', path: '/admin/courses', icon: AcademicCapIcon },
     { name: 'Batches', path: '/admin/batches', icon: CalendarIcon },
     { name: 'Modules', path: '/admin/modules', icon: BookOpenIcon },
   ],

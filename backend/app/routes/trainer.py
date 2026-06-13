@@ -90,6 +90,59 @@ async def get_batches(
             "isActive": b.isActive,
             "status": "ACTIVE" if b.isActive else "COMPLETED",
             "studentCount": student_count,
+            "courseId": b.courseId,
+            "course": {"id": b.course.id, "name": b.course.name} if b.course else None,
+        })
+
+    return success_response(data=data)
+
+
+@router.get("/students")
+async def get_students(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Return all students belonging to the batches assigned to this trainer."""
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    trainer_batches = db.query(TrainerBatch).filter(TrainerBatch.trainerId == trainer.id).all()
+    batch_ids = [tb.batchId for tb in trainer_batches]
+    if not batch_ids:
+        return success_response(data=[])
+
+    students = db.query(Student).filter(Student.batchId.in_(batch_ids)).all()
+
+    # Pre-load batch names to avoid per-student lookups
+    batches = {b.id: b for b in db.query(Batch).filter(Batch.id.in_(batch_ids)).all()}
+
+    data = []
+    for student in students:
+        total_lectures = db.query(Lecture).filter(Lecture.batchId == student.batchId).count()
+        present_count = db.query(Attendance).filter(
+            Attendance.studentId == student.id,
+            Attendance.status == "PRESENT",
+        ).count()
+        attendance_pct = (present_count / total_lectures * 100) if total_lectures > 0 else 0
+        avg_marks = db.query(func.avg(Marks.score)).filter(Marks.studentId == student.id).scalar() or 0
+
+        batch = batches.get(student.batchId)
+        data.append({
+            "id": student.id,
+            "userId": student.userId,
+            "batchId": student.batchId,
+            "mode": student.mode,
+            "enrollmentDate": student.enrollmentDate.isoformat() if student.enrollmentDate else None,
+            "user": {
+                "id": student.user.id,
+                "name": student.user.name,
+                "email": student.user.email,
+                "phone": student.user.phone,
+            } if student.user else None,
+            "batch": {"id": batch.id, "name": batch.name} if batch else None,
+            "attendancePercentage": round(attendance_pct, 2),
+            "avgMarks": round(float(avg_marks), 2),
         })
 
     return success_response(data=data)

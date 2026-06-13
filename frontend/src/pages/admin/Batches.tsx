@@ -13,6 +13,7 @@ export default function AdminBatches() {
   const [batches, setBatches] = useState<any[]>([]);
   const [trainers, setTrainers] = useState<any[]>([]);
   const [modules, setModules] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -21,6 +22,7 @@ export default function AdminBatches() {
     startDate: '',
     endDate: '',
     trainerId: '',
+    courseId: '',
     moduleAssignments: [] as ModuleAssignment[],
     status: 'ACTIVE',
   });
@@ -55,7 +57,16 @@ export default function AdminBatches() {
     }
   };
 
-  useEffect(() => { fetchBatches(); fetchTrainers(); fetchModules(); }, []);
+  const fetchCourses = async () => {
+    try {
+      const res = await api.get('/admin/courses');
+      setCourses(res.data.data?.courses || res.data.data || []);
+    } catch {
+      setCourses([]);
+    }
+  };
+
+  useEffect(() => { fetchBatches(); fetchTrainers(); fetchModules(); fetchCourses(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +76,7 @@ export default function AdminBatches() {
         startDate: form.startDate,
         endDate: form.endDate || undefined,
         trainerId: form.trainerId || undefined,
+        courseId: form.courseId || null,
         isActive: form.status === 'ACTIVE',
         modules: form.moduleAssignments.map((ma) => ({
           moduleId: ma.moduleId,
@@ -100,7 +112,7 @@ export default function AdminBatches() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', startDate: '', endDate: '', trainerId: '', moduleAssignments: [], status: 'ACTIVE' });
+    setForm({ name: '', startDate: '', endDate: '', trainerId: '', courseId: '', moduleAssignments: [], status: 'ACTIVE' });
     setModalOpen(true);
   };
 
@@ -111,6 +123,7 @@ export default function AdminBatches() {
       startDate: batch.startDate?.split('T')[0] || '',
       endDate: batch.endDate?.split('T')[0] || '',
       trainerId: batch.trainer?.id || '',
+      courseId: batch.courseId || '',
       moduleAssignments: batch.modules?.map((m: any) => ({
         moduleId: m.id,
         trainerId: m.trainerId || '',
@@ -144,6 +157,7 @@ export default function AdminBatches() {
 
   const columns = [
     { key: 'name', header: 'Name', render: (item: any) => item.name },
+    { key: 'course', header: 'Course', render: (item: any) => item.course?.name || '-' },
     { key: 'modules', header: 'Modules', render: (item: any) =>
       item.modules?.map((m: any) => {
         const trainerName = m.trainer?.name;
@@ -178,6 +192,7 @@ export default function AdminBatches() {
       <Modal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Batch' : 'Add Batch'}>
         <form onSubmit={handleSubmit} className="space-y-4">
           <Input label="Batch Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+          <Select label="Course" value={form.courseId} onChange={(e) => setForm({ ...form, courseId: e.target.value })} options={[{ value: '', label: 'No Course' }, ...courses.map((c: any) => ({ value: c.id, label: c.name }))]} />
           <Input label="Start Date" type="date" value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} required />
           <Input label="End Date" type="date" value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
           <Select label="Batch Trainer" value={form.trainerId} onChange={(e) => setForm({ ...form, trainerId: e.target.value })} options={trainers.map((t: any) => ({ value: t.id, label: t.user?.name || t.name || 'Unknown' }))} />

@@ -6,7 +6,10 @@ import toast from 'react-hot-toast';
 export default function TrainerEvaluation() {
   const [batches, setBatches] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
+  const [modules, setModules] = useState<any[]>([]);
   const [selectedBatch, setSelectedBatch] = useState('');
+  const [selectedModule, setSelectedModule] = useState('');
+  const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [marks, setMarks] = useState<Record<string, { theoryMarks: string; practicalMarks: string; projectMarks: string }>>({});
 
@@ -23,34 +26,71 @@ export default function TrainerEvaluation() {
   }, []);
 
   useEffect(() => {
-    if (!selectedBatch) return;
+    if (!selectedBatch) { setStudents([]); setModules([]); setSelectedModule(''); return; }
     setLoading(true);
-    const batch = batches.find((b) => b.id === selectedBatch);
-    const batchStudents = batch?.students || [];
-    setStudents(batchStudents);
-    const initialMarks: Record<string, { theoryMarks: string; practicalMarks: string; projectMarks: string }> = {};
-    batchStudents.forEach((s: any) => {
-      initialMarks[s.id] = { theoryMarks: '', practicalMarks: '', projectMarks: '' };
-    });
-    setMarks(initialMarks);
-    setLoading(false);
-  }, [selectedBatch, batches]);
+    setSelectedModule('');
+    const fetchData = async () => {
+      try {
+        const [studentsRes, modulesRes] = await Promise.all([
+          api.get(`/trainer/batches/${selectedBatch}/students`),
+          api.get(`/trainer/batches/${selectedBatch}/modules`),
+        ]);
+        const batchStudents = studentsRes.data.data?.students || studentsRes.data.data || [];
+        setStudents(batchStudents);
+        setModules(modulesRes.data.data?.modules || modulesRes.data.data || []);
+        const initialMarks: Record<string, { theoryMarks: string; practicalMarks: string; projectMarks: string }> = {};
+        batchStudents.forEach((s: any) => {
+          initialMarks[s.id] = { theoryMarks: '', practicalMarks: '', projectMarks: '' };
+        });
+        setMarks(initialMarks);
+      } catch {
+        setStudents([]);
+        setModules([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [selectedBatch]);
+
+  const MARK_FIELDS: { field: 'theoryMarks' | 'practicalMarks' | 'projectMarks'; type: string }[] = [
+    { field: 'theoryMarks', type: 'THEORY' },
+    { field: 'practicalMarks', type: 'PRACTICAL' },
+    { field: 'projectMarks', type: 'PROJECT' },
+  ];
 
   const handleSubmit = async () => {
+    if (!selectedModule) {
+      toast.error('Please select a module first');
+      return;
+    }
+    setSaving(true);
     try {
-      const entries = Object.entries(marks).filter(([_, v]) => v.theoryMarks || v.practicalMarks || v.projectMarks);
-      for (const [studentId, m] of entries) {
-        await api.post('/evaluation', {
-          studentId,
-          batchId: selectedBatch,
-          theoryMarks: m.theoryMarks ? Number(m.theoryMarks) : undefined,
-          practicalMarks: m.practicalMarks ? Number(m.practicalMarks) : undefined,
-          projectMarks: m.projectMarks ? Number(m.projectMarks) : undefined,
-        });
+      const requests: Promise<any>[] = [];
+      for (const [studentId, m] of Object.entries(marks)) {
+        for (const { field, type } of MARK_FIELDS) {
+          const value = m[field];
+          if (value !== '' && value !== undefined && value !== null) {
+            requests.push(api.post('/evaluation/marks', {
+              studentId,
+              moduleId: selectedModule,
+              type,
+              score: Number(value),
+              maxScore: 100,
+            }));
+          }
+        }
       }
+      if (requests.length === 0) {
+        toast.error('Enter at least one mark before saving');
+        return;
+      }
+      await Promise.all(requests);
       toast.success('Marks saved successfully');
     } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Error saving marks');
+      toast.error(err.response?.data?.error || err.response?.data?.message || 'Error saving marks');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -69,7 +109,21 @@ export default function TrainerEvaluation() {
         options={batches.map((b: any) => ({ value: b.id, label: b.name }))}
       />
 
-      {loading ? <Spinner /> : selectedBatch && students.length > 0 ? (
+      {selectedBatch && (
+        <Select
+          label="Select Module"
+          value={selectedModule}
+          onChange={(e) => setSelectedModule(e.target.value)}
+          options={[
+            { value: '', label: 'Select a module...' },
+            ...modules.map((bm: any) => ({ value: bm.module?.id || bm.moduleId, label: bm.module?.name || 'Module' })),
+          ]}
+        />
+      )}
+
+      {loading ? <Spinner /> : selectedBatch && !selectedModule ? (
+        <Card><p className="text-gray-500 text-center">{modules.length === 0 ? 'No modules assigned to this batch' : 'Select a module to enter marks'}</p></Card>
+      ) : selectedBatch && selectedModule && students.length > 0 ? (
         <Card>
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
@@ -100,10 +154,10 @@ export default function TrainerEvaluation() {
             </table>
           </div>
           <div className="mt-4 flex justify-end">
-            <Button onClick={handleSubmit}>Save Marks</Button>
+            <Button onClick={handleSubmit} loading={saving}>Save Marks</Button>
           </div>
         </Card>
-      ) : selectedBatch ? (
+      ) : selectedBatch && selectedModule ? (
         <Card><p className="text-gray-500 text-center">No students in this batch</p></Card>
       ) : null}
     </div>

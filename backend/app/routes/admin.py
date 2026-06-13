@@ -12,6 +12,7 @@ from app.models.batch import Batch
 from app.models.batch_module import BatchModule
 from app.models.counsellor import Counsellor
 from app.models.counsellor_student import CounsellorStudent
+from app.models.course import Course
 from app.models.fee import Fee
 from app.models.marks import Marks
 from app.models.mock_interview import MockInterview
@@ -102,6 +103,8 @@ def serialize_batch(batch: Batch) -> dict:
         "endDate": batch.endDate.isoformat() if batch.endDate else None,
         "isActive": batch.isActive,
         "status": "ACTIVE" if batch.isActive else "COMPLETED",
+        "courseId": batch.courseId,
+        "course": {"id": batch.course.id, "name": batch.course.name} if batch.course else None,
         "studentCount": len(batch.students) if batch.students else 0,
         "modules": [
             {
@@ -172,10 +175,14 @@ async def dashboard(db: Session = Depends(get_db)):
 
 # Students CRUD
 @router.get("/students")
-async def get_students(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+async def get_students(page: int = 1, limit: int = 10, search: str = "", db: Session = Depends(get_db)):
     offset = (page - 1) * limit
-    total = db.query(Student).count()
-    students = db.query(Student).offset(offset).limit(limit).all()
+    query = db.query(Student).join(User, Student.userId == User.id)
+    if search:
+        like = f"%{search}%"
+        query = query.filter((User.name.ilike(like)) | (User.email.ilike(like)))
+    total = query.count()
+    students = query.order_by(Student.enrollmentDate.desc()).offset(offset).limit(limit).all()
     data = [serialize_student(s) for s in students]
     return paginated_response(data, total, page, limit)
 
@@ -486,6 +493,7 @@ async def create_batch(request: Request, db: Session = Depends(get_db)):
         startDate=datetime.fromisoformat(start_date) if isinstance(start_date, str) else start_date,
         endDate=datetime.fromisoformat(body["endDate"]) if body.get("endDate") else None,
         isActive=body.get("isActive", True),
+        courseId=body.get("courseId") or None,
     )
     db.add(batch)
     db.flush()
@@ -552,6 +560,8 @@ async def update_batch(batch_id: str, request: Request, db: Session = Depends(ge
         batch.endDate = datetime.fromisoformat(body["endDate"]) if isinstance(body["endDate"], str) and body["endDate"] else None
     if "isActive" in body:
         batch.isActive = body["isActive"]
+    if "courseId" in body:
+        batch.courseId = body["courseId"] or None
 
     # Update modules if provided — replace existing assignments
     if "modules" in body:
@@ -683,6 +693,88 @@ async def delete_module(module_id: str, db: Session = Depends(get_db)):
     db.commit()
 
     return success_response(message="Module deleted successfully")
+
+
+# Courses CRUD
+def serialize_course(course: Course) -> dict:
+    return {
+        "id": course.id,
+        "name": course.name,
+        "description": course.description,
+        "isActive": course.isActive,
+        "batches": [{"id": b.id, "name": b.name} for b in course.batches] if course.batches else [],
+    }
+
+
+@router.get("/courses")
+async def get_courses(page: int = 1, limit: int = 10, db: Session = Depends(get_db)):
+    offset = (page - 1) * limit
+    total = db.query(Course).count()
+    courses = db.query(Course).options(selectinload(Course.batches)).offset(offset).limit(limit).all()
+    data = [serialize_course(c) for c in courses]
+    return paginated_response(data, total, page, limit)
+
+
+@router.post("/courses")
+async def create_course(request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        return error_response("Invalid request body", 400)
+
+    name = body.get("name")
+    if not name:
+        return error_response("Course name is required", 400)
+
+    course = Course(
+        name=name,
+        description=body.get("description"),
+        isActive=body.get("isActive", True),
+    )
+    db.add(course)
+    db.commit()
+    db.refresh(course)
+
+    return success_response(data=serialize_course(course), message="Course created successfully", status_code=201)
+
+
+@router.put("/courses/{course_id}")
+async def update_course(course_id: str, request: Request, db: Session = Depends(get_db)):
+    try:
+        body = await request.json()
+    except Exception:
+        return error_response("Invalid request body", 400)
+
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        return error_response("Course not found", 404)
+
+    if "name" in body:
+        course.name = body["name"]
+    if "description" in body:
+        course.description = body["description"]
+    if "isActive" in body:
+        course.isActive = body["isActive"]
+
+    db.commit()
+    db.refresh(course)
+
+    return success_response(data=serialize_course(course), message="Course updated successfully")
+
+
+@router.delete("/courses/{course_id}")
+async def delete_course(course_id: str, db: Session = Depends(get_db)):
+    course = db.query(Course).filter(Course.id == course_id).first()
+    if not course:
+        return error_response("Course not found", 404)
+
+    # Detach batches (set courseId to NULL) rather than deleting them, to preserve
+    # existing batch/student/evaluation data.
+    db.query(Batch).filter(Batch.courseId == course_id).update({Batch.courseId: None})
+    db.query(Course).filter(Course.id == course_id).delete()
+    db.commit()
+
+    return success_response(message="Course deleted successfully")
 
 
 # Assignment endpoints

@@ -58,19 +58,36 @@ async def create_marks(
     if not student_id or not module_id or not mark_type or score is None or max_score is None:
         return error_response("studentId, moduleId, type, score, and maxScore are required", 400)
 
-    marks = Marks(
-        studentId=student_id,
-        moduleId=module_id,
-        type=mark_type,
-        score=score,
-        maxScore=max_score,
-        remarks=remarks,
-    )
-    db.add(marks)
+    # Upsert on (studentId, moduleId, type) so re-saving updates instead of duplicating.
+    marks = db.query(Marks).filter(
+        Marks.studentId == student_id,
+        Marks.moduleId == module_id,
+        Marks.type == mark_type,
+    ).first()
+
+    if marks:
+        marks.score = score
+        marks.maxScore = max_score
+        marks.remarks = remarks
+        status_code = 200
+        message = "Marks updated successfully"
+    else:
+        marks = Marks(
+            studentId=student_id,
+            moduleId=module_id,
+            type=mark_type,
+            score=score,
+            maxScore=max_score,
+            remarks=remarks,
+        )
+        db.add(marks)
+        status_code = 201
+        message = "Marks recorded successfully"
+
     db.commit()
     db.refresh(marks)
 
-    return success_response(data=serialize_marks(marks), message="Marks recorded successfully", status_code=201)
+    return success_response(data=serialize_marks(marks), message=message, status_code=status_code)
 
 
 @router.get("/marks/{student_id}")

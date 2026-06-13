@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
@@ -45,7 +45,22 @@ def serialize_interview(mi: MockInterview) -> dict:
     }
 
 
-@router.post("/")
+@router.get("")
+async def list_mock_interviews(
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """List mock interviews recorded by the current trainer."""
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer:
+        return error_response("Trainer profile not found", 404)
+
+    interviews = db.query(MockInterview).filter(MockInterview.trainerId == trainer.id).all()
+    data = [serialize_interview(mi) for mi in interviews]
+    return success_response(data=data)
+
+
+@router.post("")
 async def create_mock_interview(
     request: Request,
     current_user: dict = Depends(role_guard(["TRAINER"])),
@@ -63,12 +78,18 @@ async def create_mock_interview(
     confidence = body.get("confidence")
     feedback = body.get("feedback")
 
-    if not student_id or not date_str:
-        return error_response("studentId and date are required", 400)
+    if not student_id:
+        return error_response("studentId is required", 400)
 
     trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
     if not trainer:
         return error_response("Trainer profile not found", 404)
+
+    # Date is optional — default to now if not provided.
+    if date_str:
+        interview_date = datetime.fromisoformat(date_str) if isinstance(date_str, str) else date_str
+    else:
+        interview_date = datetime.now(timezone.utc)
 
     # Calculate overall score as average of provided scores
     scores = [s for s in [communication, technical, confidence] if s is not None]
@@ -77,7 +98,7 @@ async def create_mock_interview(
     mi = MockInterview(
         studentId=student_id,
         trainerId=trainer.id,
-        date=datetime.fromisoformat(date_str) if isinstance(date_str, str) else date_str,
+        date=interview_date,
         communication=communication,
         technical=technical,
         confidence=confidence,

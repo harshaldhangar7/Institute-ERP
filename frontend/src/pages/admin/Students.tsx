@@ -20,7 +20,7 @@ export default function AdminStudents() {
     try {
       const res = await api.get('/admin/students', { params: { page, limit, search } });
       setStudents(res.data.data?.students || res.data.data || []);
-      setTotal(res.data.data?.total || 0);
+      setTotal(res.data.total ?? res.data.data?.total ?? 0);
     } catch {
       setStudents([]);
     } finally {

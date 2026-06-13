@@ -10,15 +10,18 @@ echo "Setting up Institute ERP Backend..."
 
 # Create virtual environment
 echo "Creating Python virtual environment..."
-python -m venv venv
+sudo python3 -m venv venv
 
 # Activate virtual environment
 echo "Activating virtual environment..."
 source venv/bin/activate
 
+# Upgrade pip
+sudo python -m pip install --upgrade pip setuptools wheel
+
 # Install dependencies
 echo "Installing dependencies from requirements.txt..."
-pip install -r requirements.txt
+sudo pip install -r requirements.txt
 
 echo ""
 echo "Setup complete!"

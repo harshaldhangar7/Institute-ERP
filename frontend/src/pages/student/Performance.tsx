@@ -11,10 +11,10 @@ export default function StudentPerformance() {
     const fetchData = async () => {
       try {
         const [perfRes, mockRes] = await Promise.all([
-          api.get('/student/performance'),
+          api.get('/student/marks'),
           api.get('/student/mock-interviews'),
         ]);
-        setPerformance(perfRes.data.data?.evaluations || perfRes.data.data || []);
+        setPerformance(perfRes.data.data?.marks || perfRes.data.data || []);
         setMocks(mockRes.data.data?.interviews || mockRes.data.data || []);
       } catch {
         setPerformance([]);
@@ -28,11 +28,16 @@ export default function StudentPerformance() {
 
   if (loading) return <Spinner />;
 
+  const renderMarks = (entries: any[]) => {
+    if (!entries || entries.length === 0) return '-';
+    return entries.map((e: any) => `${e.score}/${e.maxScore}`).join(', ');
+  };
+
   const perfColumns = [
-    { key: 'module', header: 'Module', render: (item: any) => item.module?.name || '-' },
-    { key: 'theory', header: 'Theory', render: (item: any) => item.theoryMarks ?? '-' },
-    { key: 'practical', header: 'Practical', render: (item: any) => item.practicalMarks ?? '-' },
-    { key: 'project', header: 'Project', render: (item: any) => item.projectMarks ?? '-' },
+    { key: 'module', header: 'Module', render: (item: any) => item.moduleName || item.module?.name || '-' },
+    { key: 'theory', header: 'Theory', render: (item: any) => renderMarks(item.theory) },
+    { key: 'practical', header: 'Practical', render: (item: any) => renderMarks(item.practical) },
+    { key: 'project', header: 'Project', render: (item: any) => renderMarks(item.project) },
   ];
 
   const mockColumns = [

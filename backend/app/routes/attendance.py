@@ -199,6 +199,87 @@ async def mark_online(
     return success_response(message="Attendance marked successfully", status_code=201)
 
 
+@router.post("/mark")
+async def mark_manual(
+    request: Request,
+    current_user: dict = Depends(role_guard(["TRAINER"])),
+    db: Session = Depends(get_db),
+):
+    """Trainer manually marks a student's attendance for a lecture."""
+    try:
+        body = await request.json()
+    except Exception:
+        return error_response("Invalid request body", 400)
+
+    lecture_id = body.get("lectureId")
+    student_id = body.get("studentId")
+    status = body.get("status", "PRESENT")
+
+    if not lecture_id or not student_id:
+        return error_response("lectureId and studentId are required", 400)
+
+    lecture = db.query(Lecture).filter(Lecture.id == lecture_id).first()
+    if not lecture:
+        return error_response("Lecture not found", 404)
+
+    # Verify trainer owns this lecture
+    trainer = db.query(Trainer).filter(Trainer.userId == current_user["userId"]).first()
+    if not trainer or lecture.trainerId != trainer.id:
+        return error_response("Access denied", 403)
+
+    student = db.query(Student).filter(Student.id == student_id).first()
+    if not student:
+        return error_response("Student not found", 404)
+
+    existing = db.query(Attendance).filter(
+        Attendance.studentId == student_id,
+        Attendance.lectureId == lecture_id,
+    ).first()
+
+    if existing:
+        existing.status = status
+        existing.method = "MANUAL"
+    else:
+        db.add(Attendance(
+            studentId=student_id,
+            lectureId=lecture_id,
+            status=status,
+            method="MANUAL",
+        ))
+    db.commit()
+
+    return success_response(message="Attendance marked successfully")
+
+
+@router.get("/lecture/{lecture_id}")
+async def get_lecture_attendance(
+    lecture_id: str,
+    current_user: dict = Depends(role_guard(["TRAINER", "STUDENT"])),
+    db: Session = Depends(get_db),
+):
+    """Return all attendance records for a single lecture."""
+    attendances = db.query(Attendance).filter(Attendance.lectureId == lecture_id).all()
+
+    data = [{
+        "id": a.id,
+        "studentId": a.studentId,
+        "lectureId": a.lectureId,
+        "status": a.status,
+        "markedAt": a.markedAt.isoformat() if a.markedAt else None,
+        "method": a.method,
+        "student": {
+            "id": a.student.id,
+            "user": {
+                "id": a.student.user.id,
+                "name": a.student.user.name,
+                "email": a.student.user.email,
+            } if a.student.user else None,
+        } if a.student else None,
+    } for a in attendances]
+
+    return success_response(data=data)
+
+
 @router.get("/history/{student_id}")
 async def get_history(
     student_id: str,

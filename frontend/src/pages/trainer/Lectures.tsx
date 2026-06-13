@@ -65,16 +65,27 @@ export default function TrainerLectures() {
     fetchModulesForBatch(batchId);
   };
 
-  // QR code refresh every 10 seconds, available for 5 minutes after ending lecture
+  // QR code is a short-lived HMAC token from the backend. The backend token is
+  // valid for 10s, so refresh a bit sooner (8s) to always show a scannable code.
+  // The whole session stays available for 5 minutes after ending the lecture.
   useEffect(() => {
-    if (!showQr) return;
-    const generateQr = () => {
-      const timestamp = Date.now();
-      const value = JSON.stringify({ lectureId: activeLecture?.id, timestamp, token: Math.random().toString(36).substring(7) });
-      setQrValue(value);
+    if (!showQr || !activeLecture?.id) return;
+    let cancelled = false;
+
+    const generateQr = async () => {
+      try {
+        const res = await api.post('/attendance/generate-qr', { lectureId: activeLecture.id });
+        const { lectureId, token, timestamp } = res.data.data || {};
+        if (cancelled) return;
+        setQrValue(JSON.stringify({ lectureId, token, timestamp }));
+      } catch (err: any) {
+        if (cancelled) return;
+        toast.error(err.response?.data?.error || err.response?.data?.message || 'Failed to generate QR');
+      }
     };
+
     generateQr();
-    const refreshInterval = setInterval(generateQr, 10000);
+    const refreshInterval = setInterval(generateQr, 8000);
 
     // 5 minute countdown
     setQrTimeLeft(300);
@@ -93,10 +104,11 @@ export default function TrainerLectures() {
     }, 1000);
 
     return () => {
+      cancelled = true;
       clearInterval(refreshInterval);
       clearInterval(countdownInterval);
     };
-  }, [showQr]);
+  }, [showQr, activeLecture?.id]);
 
   const handleStartLecture = async (e: React.FormEvent) => {
     e.preventDefault();
