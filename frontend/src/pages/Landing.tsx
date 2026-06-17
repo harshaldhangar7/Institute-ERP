@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 /**
@@ -7,6 +7,12 @@ import { Link } from 'react-router-dom';
  */
 export default function Landing() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const activeSection = useActiveSection(['features', 'problem', 'how', 'roles', 'contact']);
+
+  const navLink = (id: string, label: string) =>
+    `text-sm font-medium transition-colors ${
+      activeSection === id ? 'text-indigo-600' : 'text-gray-600 hover:text-indigo-600'
+    }`;
 
   return (
     <div className="min-h-screen bg-white text-gray-900 antialiased">
@@ -21,10 +27,11 @@ export default function Landing() {
           </a>
 
           <div className="hidden items-center gap-8 md:flex">
-            <a href="#features" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Features</a>
-            <a href="#problem" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Why ERP</a>
-            <a href="#roles" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Roles</a>
-            <a href="#contact" className="text-sm font-medium text-gray-600 hover:text-indigo-600">Contact</a>
+            <a href="#features" className={navLink('features', 'Features')}>Features</a>
+            <a href="#problem" className={navLink('problem', 'Why ERP')}>Why ERP</a>
+            <a href="#how" className={navLink('how', 'How it works')}>How it works</a>
+            <a href="#roles" className={navLink('roles', 'Roles')}>Roles</a>
+            <a href="#contact" className={navLink('contact', 'Contact')}>Contact</a>
           </div>
 
           <div className="hidden items-center gap-3 md:flex">
@@ -47,6 +54,7 @@ export default function Landing() {
             className="inline-flex items-center justify-center rounded-lg p-2 text-gray-600 hover:bg-gray-100 md:hidden"
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="Toggle menu"
+            aria-expanded={menuOpen}
           >
             <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
@@ -59,6 +67,7 @@ export default function Landing() {
             <div className="flex flex-col gap-4">
               <a href="#features" className="text-sm font-medium text-gray-600" onClick={() => setMenuOpen(false)}>Features</a>
               <a href="#problem" className="text-sm font-medium text-gray-600" onClick={() => setMenuOpen(false)}>Why ERP</a>
+              <a href="#how" className="text-sm font-medium text-gray-600" onClick={() => setMenuOpen(false)}>How it works</a>
               <a href="#roles" className="text-sm font-medium text-gray-600" onClick={() => setMenuOpen(false)}>Roles</a>
               <a href="#contact" className="text-sm font-medium text-gray-600" onClick={() => setMenuOpen(false)}>Contact</a>
               <Link to="/login" className="rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-semibold text-white">
@@ -97,8 +106,8 @@ export default function Landing() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                 </svg>
               </Link>
-              <a href="#features" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-6 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50">
-                Explore features
+              <a href="#contact" className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-6 py-3 text-base font-semibold text-gray-700 hover:bg-gray-50">
+                Book a demo
               </a>
             </div>
 
@@ -117,10 +126,23 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* -------------------------------------------------------- Social proof */}
+      <section className="border-y border-gray-100 bg-white">
+        <div className="mx-auto grid max-w-7xl grid-cols-2 gap-8 px-6 py-10 sm:grid-cols-4">
+          {TRUST_STATS.map((s) => (
+            <div key={s.label} className="text-center">
+              <div className="text-3xl font-extrabold text-gray-900">{s.value}</div>
+              <div className="mt-1 text-sm text-gray-500">{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ------------------------------------------------------------ Problem */}
-      <section id="problem" className="mx-auto max-w-7xl px-6 py-20">
+      <Reveal as="section" id="problem" className="mx-auto max-w-7xl px-6 py-20">
         <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">The problem we solve</h2>
+          <SectionEyebrow>Why an ERP</SectionEyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">The problem we solve</h2>
           <p className="mt-4 text-lg text-gray-600">
             Educational institutes juggle attendance registers, fee ledgers, mark sheets and
             announcements across disconnected tools. Data gets lost, reports take hours, and no one
@@ -145,43 +167,113 @@ export default function Landing() {
             after="Role-based access with secure JWT login"
           />
         </div>
-      </section>
+      </Reveal>
 
-      {/* ----------------------------------------------------------- Features */}
-      <section id="features" className="bg-gray-50 py-20">
+      {/* --------------------------------------------------------- How it works */}
+      <section id="how" className="bg-gray-50 py-20">
         <div className="mx-auto max-w-7xl px-6">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Everything your institute needs</h2>
+          <Reveal className="mx-auto max-w-3xl text-center">
+            <SectionEyebrow>How it works</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">From setup to insight in four steps</h2>
             <p className="mt-4 text-lg text-gray-600">
-              A complete toolkit built for educational institutes — from the first lecture to the
-              final report.
+              The whole institute works off the same data — each role picks up exactly where the last left off.
             </p>
-          </div>
+          </Reveal>
 
-          <div className="mt-14 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map((f) => (
-              <FeatureCard key={f.title} {...f} />
+          <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {STEPS.map((step, i) => (
+              <Reveal key={step.title} delay={i * 80} className="relative rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600 text-sm font-bold text-white">
+                  {i + 1}
+                </span>
+                <h3 className="mt-4 text-lg font-bold">{step.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-gray-600">{step.desc}</p>
+                {i < STEPS.length - 1 && (
+                  <svg className="absolute -right-4 top-10 hidden h-6 w-6 text-indigo-300 lg:block" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                )}
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* -------------------------------------------------------------- Roles */}
-      <section id="roles" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="mx-auto max-w-3xl text-center">
-          <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Built for every role</h2>
+      {/* ----------------------------------------------------------- Features */}
+      <section id="features" className="mx-auto max-w-7xl px-6 py-20">
+        <Reveal className="mx-auto max-w-3xl text-center">
+          <SectionEyebrow>Features</SectionEyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Everything your institute needs</h2>
           <p className="mt-4 text-lg text-gray-600">
-            Each user gets a focused dashboard with exactly the tools they need — nothing more.
+            A complete toolkit, organized around what you're trying to get done.
           </p>
-        </div>
+        </Reveal>
 
-        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {ROLES.map((r) => (
-            <div key={r.name} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
-              <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${r.color}`}>{r.icon}</span>
-              <h3 className="mt-4 text-lg font-bold">{r.name}</h3>
-              <p className="mt-2 text-sm text-gray-600">{r.desc}</p>
-            </div>
+        <div className="mt-14 space-y-14">
+          {FEATURE_GROUPS.map((group) => (
+            <Reveal key={group.name}>
+              <div className="mb-6 flex items-center gap-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                  {group.icon}
+                </span>
+                <h3 className="text-xl font-bold">{group.name}</h3>
+                <span className="h-px flex-1 bg-gray-100" />
+              </div>
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                {group.items.map((f) => (
+                  <FeatureCard key={f.title} {...f} />
+                ))}
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </section>
+
+      {/* -------------------------------------------------------------- Roles */}
+      <section id="roles" className="bg-gray-50 py-20">
+        <div className="mx-auto max-w-7xl px-6">
+          <Reveal className="mx-auto max-w-3xl text-center">
+            <SectionEyebrow>Roles</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Built for every role</h2>
+            <p className="mt-4 text-lg text-gray-600">
+              Each user gets a focused dashboard with exactly the tools they need — nothing more.
+            </p>
+          </Reveal>
+
+          <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {ROLES.map((r, i) => (
+              <Reveal key={r.name} delay={i * 80} className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+                <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${r.color}`}>{r.icon}</span>
+                <h3 className="mt-4 text-lg font-bold">{r.name}</h3>
+                <p className="mt-2 text-sm text-gray-600">{r.desc}</p>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------------- Testimonials */}
+      <section className="mx-auto max-w-7xl px-6 py-20">
+        <Reveal className="mx-auto max-w-3xl text-center">
+          <SectionEyebrow>Loved by institutes</SectionEyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">What our users say</h2>
+        </Reveal>
+
+        <div className="mt-14 grid gap-6 md:grid-cols-3">
+          {TESTIMONIALS.map((t, i) => (
+            <Reveal key={t.name} delay={i * 80} className="flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <Stars />
+              <p className="mt-4 flex-1 text-sm leading-relaxed text-gray-700">“{t.quote}”</p>
+              <div className="mt-6 flex items-center gap-3">
+                <span className={`flex h-10 w-10 items-center justify-center rounded-full font-bold ${t.color}`}>
+                  {t.name.charAt(0)}
+                </span>
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">{t.name}</div>
+                  <div className="text-xs text-gray-500">{t.role}</div>
+                </div>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
@@ -205,11 +297,33 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* ---------------------------------------------------------------- FAQ */}
+      <section className="mx-auto max-w-3xl px-6 py-20">
+        <Reveal className="text-center">
+          <SectionEyebrow>FAQ</SectionEyebrow>
+          <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Frequently asked questions</h2>
+        </Reveal>
+        <div className="mt-10 divide-y divide-gray-100 rounded-2xl border border-gray-100">
+          {FAQS.map((f) => (
+            <details key={f.q} className="group px-6 py-5">
+              <summary className="flex cursor-pointer list-none items-center justify-between text-base font-semibold text-gray-900">
+                {f.q}
+                <svg className="h-5 w-5 text-gray-400 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </summary>
+              <p className="mt-3 text-sm leading-relaxed text-gray-600">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {/* ------------------------------------------------------------ Contact */}
-      <section id="contact" className="mx-auto max-w-7xl px-6 py-20">
-        <div className="grid gap-12 lg:grid-cols-2">
-          <div>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">Contact & support</h2>
+      <section id="contact" className="bg-gray-50 py-20">
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2">
+          <Reveal>
+            <SectionEyebrow>Contact</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-bold tracking-tight sm:text-4xl">Contact & support</h2>
             <p className="mt-4 text-lg text-gray-600">
               Need help getting onboarded or have a question about your account? Our support team is
               here for students, trainers and administrators alike.
@@ -221,10 +335,10 @@ export default function Landing() {
               <ContactRow icon={<IconChat />} label="Help desk hours" value="Mon–Sat, 9:00 AM – 6:00 PM IST" />
               <ContactRow icon={<IconDocs />} label="API documentation" value="/docs (Swagger UI)" href="/docs" />
             </div>
-          </div>
+          </Reveal>
 
           {/* Support card */}
-          <div className="rounded-2xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-white p-8 shadow-sm">
+          <Reveal delay={120} className="rounded-2xl border border-gray-100 bg-gradient-to-br from-indigo-50 to-white p-8 shadow-sm">
             <h3 className="text-xl font-bold">Get in touch</h3>
             <p className="mt-1 text-sm text-gray-600">Send us a message and we'll respond within one business day.</p>
             <form
@@ -235,21 +349,21 @@ export default function Landing() {
               }}
             >
               <div className="grid gap-4 sm:grid-cols-2">
-                <input className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Your name" required />
-                <input type="email" className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Email address" required />
+                <input aria-label="Your name" className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Your name" required />
+                <input aria-label="Email address" type="email" className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Email address" required />
               </div>
-              <input className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Subject" />
-              <textarea rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="How can we help?" required />
+              <input aria-label="Subject" className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="Subject" />
+              <textarea aria-label="Message" rows={4} className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" placeholder="How can we help?" required />
               <button type="submit" className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-indigo-700">
                 Send message
               </button>
             </form>
-          </div>
+          </Reveal>
         </div>
       </section>
 
       {/* ------------------------------------------------------------- Footer */}
-      <footer className="border-t border-gray-100 bg-gray-50">
+      <footer className="border-t border-gray-100 bg-white">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-6 py-8 sm:flex-row">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-600 text-white">
@@ -269,51 +383,47 @@ export default function Landing() {
 
 /* ------------------------------------------------------------------ Data */
 
-const FEATURES = [
+const TRUST_STATS = [
+  { value: '250+', label: 'Students managed' },
+  { value: '12', label: 'Active batches' },
+  { value: '99.9%', label: 'Uptime' },
+  { value: '< 1s', label: 'Report generation' },
+];
+
+const STEPS = [
+  { title: 'Admin sets up', desc: 'Create batches, modules and users, then assign trainers and counsellors in a few clicks.' },
+  { title: 'Trainers teach', desc: 'Run lectures, mark QR attendance, post assignments and record evaluations.' },
+  { title: 'Students engage', desc: 'Submit work, track performance and attendance, and never miss an announcement.' },
+  { title: 'Everyone reports', desc: 'Generate attendance and marks reports as PDF or Excel — instantly, for any batch.' },
+];
+
+const FEATURE_GROUPS = [
   {
-    title: 'Attendance Management',
-    desc: 'QR code-based and manual attendance tracking with secure, HMAC-signed session tokens.',
-    icon: <IconCheck />,
-  },
-  {
-    title: 'Evaluation System',
-    desc: 'Marks management and mock interviews with multi-parameter scoring for every student.',
+    name: 'Teach & track',
     icon: <IconChart />,
+    items: [
+      { title: 'Attendance Management', desc: 'QR code-based and manual attendance tracking with secure, HMAC-signed session tokens.', icon: <IconCheck /> },
+      { title: 'Evaluation System', desc: 'Marks management and mock interviews with multi-parameter scoring for every student.', icon: <IconChart /> },
+      { title: 'Assignments & Resources', desc: 'Upload assignments, collect submissions and share learning resources with file support.', icon: <IconFile /> },
+    ],
   },
   {
-    title: 'Fee Management',
-    desc: 'Track payments, pending amounts, due dates and full payment history at a glance.',
-    icon: <IconWallet />,
-  },
-  {
-    title: 'Assignments & Resources',
-    desc: 'Upload assignments, collect submissions and share learning resources with file support.',
-    icon: <IconFile />,
-  },
-  {
-    title: 'Reporting',
-    desc: 'Generate professional attendance and marks reports as PDF or Excel in one click.',
-    icon: <IconReport />,
-  },
-  {
-    title: 'Notifications',
-    desc: 'Role-targeted and batch-specific announcements keep everyone informed in real time.',
+    name: 'Engage & communicate',
     icon: <IconBell />,
+    items: [
+      { title: 'Notifications', desc: 'Role-targeted and batch-specific announcements keep everyone informed in real time.', icon: <IconBell /> },
+      { title: 'Dashboard Analytics', desc: 'Visual dashboards with charts tailored to each role for instant insight.', icon: <IconGauge /> },
+      { title: 'Batch & Module Management', desc: 'Organize students into batches, assign modules and link trainers effortlessly.', icon: <IconLayers /> },
+    ],
   },
   {
-    title: 'Dashboard Analytics',
-    desc: 'Visual dashboards with charts tailored to each role for instant insight.',
-    icon: <IconGauge />,
-  },
-  {
-    title: 'Batch & Module Management',
-    desc: 'Organize students into batches, assign modules and link trainers effortlessly.',
-    icon: <IconLayers />,
-  },
-  {
-    title: 'Secure Access Control',
-    desc: 'JWT authentication with four distinct roles ensures everyone sees only what they should.',
-    icon: <IconLock />,
+    name: 'Manage & report',
+    icon: <IconReport />,
+    items: [
+      { title: 'Fee Management', desc: 'Track payments, pending amounts, due dates and full payment history at a glance.', icon: <IconWallet /> },
+      { title: 'Reporting', desc: 'Generate professional attendance and marks reports as PDF or Excel in one click.', icon: <IconReport /> },
+      { title: 'Secure Access Control', desc: 'JWT authentication with four distinct roles ensures everyone sees only what they should.', icon: <IconLock /> },
+    ],
   },
 ];
 
@@ -324,13 +434,45 @@ const ROLES = [
   { name: 'Student', desc: 'View attendance, performance, assignments, resources and notices.', color: 'bg-amber-100 text-amber-700', icon: <IconGrad /> },
 ];
 
+const TESTIMONIALS = [
+  { name: 'Priya Sharma', role: 'Center Director', color: 'bg-indigo-100 text-indigo-700', quote: 'We replaced four spreadsheets and a WhatsApp group with one dashboard. Attendance and fee tracking finally live in the same place.' },
+  { name: 'Rahul Verma', role: 'Senior Trainer', color: 'bg-purple-100 text-purple-700', quote: 'QR attendance takes seconds, and mock-interview scoring is built right in. I spend my time teaching, not on paperwork.' },
+  { name: 'Anjali Nair', role: 'Counsellor', color: 'bg-emerald-100 text-emerald-700', quote: 'Fee alerts and performance flags mean I can reach out to students before small issues become big ones.' },
+];
+
+const FAQS = [
+  { q: 'Is my institute’s data secure?', a: 'Yes. Access is protected by JWT authentication with strict role-based permissions, so every user only sees the data relevant to their role. Attendance QR codes are HMAC-signed to prevent tampering.' },
+  { q: 'Do I need to install anything?', a: 'No. Institute ERP runs in any modern web browser. Administrators can also self-host it via Docker if they prefer to run it on their own infrastructure.' },
+  { q: 'Can I export attendance and marks reports?', a: 'Absolutely. Reports can be generated as PDF or Excel files in one click for any batch or student.' },
+  { q: 'Which roles are supported?', a: 'Four roles out of the box — Admin, Trainer, Counsellor and Student — each with its own focused dashboard and permissions.' },
+  { q: 'How do I get login credentials?', a: 'Your institute administrator creates accounts and shares credentials. Once you have them, just use the “Access ERP” button to sign in.' },
+];
+
 /* ------------------------------------------------------------- Components */
+
+function SectionEyebrow({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-sm font-semibold uppercase tracking-wider text-indigo-600">{children}</span>
+  );
+}
 
 function Stat({ value, label }: { value: string; label: string }) {
   return (
     <div>
       <div className="text-2xl font-extrabold text-indigo-600">{value}</div>
       <div className="text-sm text-gray-500">{label}</div>
+    </div>
+  );
+}
+
+function Stars() {
+  return (
+    <div className="flex gap-0.5 text-amber-400">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <svg key={i} className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.286 3.96a1 1 0 00.95.69h4.162c.969 0 1.371 1.24.588 1.81l-3.368 2.447a1 1 0 00-.364 1.118l1.287 3.96c.3.922-.755 1.688-1.54 1.118l-3.367-2.448a1 1 0 00-1.175 0l-3.367 2.448c-.784.57-1.838-.196-1.539-1.118l1.286-3.96a1 1 0 00-.363-1.118L2.075 9.387c-.783-.57-.38-1.81.588-1.81h4.162a1 1 0 00.951-.69l1.286-3.96z" />
+        </svg>
+      ))}
     </div>
   );
 }
@@ -430,6 +572,79 @@ function MiniStat({ label, value, tone }: { label: string; value: string; tone: 
   );
 }
 
+/* ----------------------------------------------------- Scroll-reveal utils */
+
+/**
+ * Wraps children in an element that fades/slides in when scrolled into view.
+ * Honors prefers-reduced-motion via the `.reveal` CSS (which renders it static).
+ */
+function Reveal({
+  children,
+  className = '',
+  delay = 0,
+  as: Tag = 'div',
+  id,
+}: {
+  children: React.ReactNode;
+  className?: string;
+  delay?: number;
+  as?: 'div' | 'section';
+  id?: string;
+}) {
+  const ref = useRef<HTMLElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisible(true);
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <Tag
+      ref={ref as React.Ref<HTMLDivElement & HTMLElement>}
+      id={id}
+      className={`reveal ${visible ? 'is-visible' : ''} ${className}`}
+      style={delay ? { transitionDelay: `${delay}ms` } : undefined}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+/** Tracks which section is currently in view to highlight the active nav link. */
+function useActiveSection(ids: string[]): string {
+  const [active, setActive] = useState('');
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) setActive(entry.target.id);
+        });
+      },
+      { rootMargin: '-40% 0px -55% 0px' }
+    );
+    ids.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+    return () => observer.disconnect();
+  }, [ids]);
+  return active;
+}
+
 /* ----------------------------------------------------------------- Icons */
 /* Minimal inline SVGs — no external image dependencies. */
 
@@ -463,5 +678,5 @@ function IconChat() { return <svg className={ic} fill="none" viewBox="0 0 24 24"
 function IconDocs() { return <svg className={ic} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>; }
 
 function IconCrown() { return <svg className={ic} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10H5zm0 0h14" /></svg>; }
-function IconTeach() { return <svg className={ic} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>; }
+function IconTeach() { return <svg className={ic} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.42A12 12 0 0112 21a12 12 0 01-6.16-10.42L12 14z" /></svg>; }
 function IconGrad() { return <svg className={ic} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 14l6.16-3.42A12 12 0 0112 21a12 12 0 01-6.16-10.42L12 14z" /></svg>; }
