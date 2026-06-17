@@ -5,6 +5,7 @@ import { ProtectedRoute } from '@/components/ProtectedRoute';
 import { Spinner } from '@/components/common/Spinner';
 
 // Lazy-loaded pages
+const Landing = lazy(() => import('@/pages/Landing'));
 const Login = lazy(() => import('@/pages/Login'));
 
 // Admin
@@ -47,8 +48,8 @@ function App() {
   return (
     <Suspense fallback={<Spinner size="lg" />}>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
 
         {/* Admin Routes */}
         <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['ADMIN']}><Layout><AdminDashboard /></Layout></ProtectedRoute>} />
