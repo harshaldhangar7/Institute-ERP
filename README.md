@@ -4,6 +4,7 @@ A comprehensive Enterprise Resource Planning system for educational institutes. 
 
 ## Features
 
+- **Public Landing Page** - Marketing home page at `/` with feature overview, "how it works" flow, testimonials, FAQ, and contact/support info, plus direct links into the app
 - **Role-Based Access Control** - Four distinct user roles (Admin, Trainer, Counsellor, Student) with JWT authentication
 - **Attendance Management** - QR code-based and manual attendance tracking with session tokens
 - **Evaluation System** - Marks management, mock interviews with multi-parameter scoring
@@ -46,6 +47,19 @@ In production, the FastAPI server serves both the API and the compiled frontend 
 - **TRAINER** - Lecture management, attendance, assignments, evaluations, mock interviews, resources, reports
 - **COUNSELLOR** - Student mentoring, fee tracking, alerts
 - **STUDENT** - View attendance, performance, assignments, resources, lectures, notifications
+
+## Frontend Routes
+
+| Route                  | Access        | Description                                              |
+|------------------------|---------------|----------------------------------------------------------|
+| `/`                    | Public        | Marketing landing page with "Access ERP" / login links   |
+| `/login`               | Public        | Sign-in page; redirects to the role dashboard on success |
+| `/admin/*`             | ADMIN         | Admin dashboard and management pages                     |
+| `/trainer/*`           | TRAINER       | Trainer dashboard and teaching tools                     |
+| `/counsellor/*`        | COUNSELLOR    | Counsellor dashboard, students, fees, alerts             |
+| `/student/*`           | STUDENT       | Student dashboard, performance, assignments, resources   |
+
+Protected routes are guarded by role; unauthenticated visitors are redirected to `/login`.
 
 ## Getting Started
 
@@ -252,7 +266,10 @@ Institute-ERP/
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx           # Root component with lazy-loaded routing
+│   │   ├── index.css         # Tailwind directives + scroll-reveal / reduced-motion styles
 │   │   ├── pages/            # Page components organized by role
+│   │   │   ├── Landing.tsx   # Public marketing landing page (route: /)
+│   │   │   ├── Login.tsx     # Login page (route: /login)
 │   │   │   ├── admin/        # Admin pages (Dashboard, Students, Batches, etc.)
 │   │   │   ├── trainer/      # Trainer pages (Lectures, Attendance, etc.)
 │   │   │   ├── counsellor/   # Counsellor pages (Students, Fees, Alerts)
